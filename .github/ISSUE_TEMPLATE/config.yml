@@ -1,0 +1,20 @@
+# Blank issues off, with the two places most reports actually belong listed
+# first. The majority of "it broke" reports are platform changes whose fix
+# lives upstream — routing those correctly helps the reporter more than a
+# triage label here ever would.
+blank_issues_enabled: false
+contact_links:
+  - name: Extractor stopped working
+    url: https://github.com/yt-dlp/yt-dlp/issues
+    about: >
+      Downloads failing after a platform change are almost always an extractor
+      issue. Reproduce with `yt-dlp -v --simulate "URL"` and report there.
+  - name: Transcripts fail on a rented server
+    url: https://github.com/tillheidrich/fundus#troubleshooting
+    about: >
+      Usually the IP, not the software. Admin → Self-test separates a blocked
+      address from a missing JavaScript runtime — they look identical and need
+      opposite fixes.
+  - name: Question or idea
+    url: https://github.com/tillheidrich/fundus/discussions
+    about: Anything that is not a reproducible bug.

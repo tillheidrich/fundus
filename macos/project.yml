@@ -1,0 +1,91 @@
+# Xcode project definition, generated with XcodeGen.
+#
+#   xcodegen generate   → Fundus.xcodeproj
+#
+# Checked in as YAML rather than as a .xcodeproj: the generated project is
+# 800 lines of machine-written XML that conflicts on every branch and that
+# nobody reads. This file is the source of truth; regenerate after editing.
+#
+# The Swift Package next to it still works and still builds without Xcode.
+# Both compile the same sources — use whichever suits the moment.
+
+name: Fundus
+options:
+  bundleIdPrefix: app.fundus
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Required for notarisation, and harmless without it.
+    ENABLE_HARDENED_RUNTIME: true
+    CODE_SIGN_STYLE: Automatic
+    DEAD_CODE_STRIPPING: true
+
+targets:
+  Fundus:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/FundusApp
+        name: Sources
+    info:
+      path: Fundus-Info.plist
+      properties:
+        CFBundleName: Fundus
+        CFBundleDisplayName: Fundus
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleIconFile: AppIcon
+        LSMinimumSystemVersion: "13.0"
+        NSHighResolutionCapable: true
+        # The server it talks to runs on loopback over plain HTTP. Scoped to
+        # local networking rather than disabling transport security wholesale.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        FundusUpdateFeed: https://api.github.com/repos/tillheidrich/fundus/releases/latest
+    entitlements:
+      path: Fundus.entitlements
+      properties:
+        # The app spawns a Python process and talks to it over the network —
+        # neither survives the App Sandbox without a lot of extra plumbing,
+        # and this app is not destined for the App Store.
+        com.apple.security.app-sandbox: false
+        com.apple.security.cs.allow-jit: true
+        com.apple.security.cs.allow-unsigned-executable-memory: true
+        # Python and its wheels are signed by other people, or not at all.
+        com.apple.security.cs.disable-library-validation: true
+        com.apple.security.network.client: true
+        com.apple.security.network.server: true
+        com.apple.security.files.user-selected.read-write: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.fundus.desktop
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        # Xcode runs the linker over the whole bundle; the Python tree we copy
+        # in is data, not code to be signed individually.
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: false
+    preBuildScripts:
+      - name: Embed Python server
+        # The server is copied, not referenced: the app has to keep working
+        # when the repository moves or disappears. Excludes are not optional —
+        # data/ holds the developer's account database.
+        script: |
+          set -e
+          SRC="${PROJECT_DIR}/.."
+          DEST="${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/server"
+          mkdir -p "$DEST"
+          # Glob, not a list: the list version shipped an app without
+          # podcast.py and the error only showed up at launch.
+          for f in "$SRC"/*.py; do [ -e "$f" ] && cp "$f" "$DEST/"; done
+          for item in requirements.txt templates locales; do
+            [ -e "$SRC/$item" ] && cp -R "$SRC/$item" "$DEST/"
+          done
+          rm -rf "$DEST/data" "$DEST/downloads" "$DEST/tmp" "$DEST/models"
+          find "$DEST" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
+        basedOnDependencyAnalysis: false

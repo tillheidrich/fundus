@@ -1,0 +1,28 @@
+# Pinned, with two deliberate exceptions at the bottom.
+#
+# The reason to pin at all: an unpinned dependency means the image you build
+# today and the image someone self-hosting builds next month are different
+# programs, and a bug report from them tells you nothing about your own
+# installation.
+fastapi==0.115.6
+# Pinned with FastAPI, not after it: pydantic 2.14 removed an internal that
+# FastAPI 0.115 imports, and a fresh install (CI, a new Mac, a rebuilt image)
+# then fails at import while every existing install keeps working.
+pydantic==2.13.5
+pydantic-settings==2.15.0
+uvicorn[standard]==0.34.0
+jinja2==3.1.4
+python-multipart==0.0.9
+aiofiles==23.2.1
+mcp==1.9.4
+youtube-transcript-api==1.2.4
+faster-whisper==1.2.1
+
+# curl_cffi floats: it carries browser TLS fingerprints, and Spotify and
+# podcast hosts answer plain urllib tersely. It is an HTTP client, not an
+# extractor, so it belongs to the server itself.
+curl_cffi
+
+# The media extractors are NOT listed here. See requirements-extractors.txt —
+# the server image is built from this file alone, and an image that contains
+# an extractor distributes it rather than linking to it.

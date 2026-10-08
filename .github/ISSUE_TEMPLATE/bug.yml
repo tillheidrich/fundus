@@ -1,0 +1,39 @@
+name: Bug report
+description: Something in Fundus itself does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Downloads failing after a platform change are almost always an
+        extractor issue — please check the yt-dlp link on the previous page
+        first. Never paste cookies, tokens or passwords here.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options: [Docker / server, macOS app, both]
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes:
+      label: Fundus version
+      placeholder: "1.0.0 (System / account page)"
+    validations: {required: true}
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use openly licensed material in examples where you can.
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected and what happened instead
+    validations: {required: true}
+  - type: textarea
+    id: log
+    attributes:
+      label: Error log
+      description: From System → error log. Check it for anything private first.
+      render: text

@@ -1,0 +1,77 @@
+# Self-hosting stack.
+#
+#   docker compose up -d
+#
+# One container by default. It starts without a media extractor; transcripts
+# via the subtitle endpoint and podcasts work right away. To add yt-dlp and
+# gallery-dl, set EXTRACTOR_AUTO_INSTALL=1 in .env — that is your decision as
+# the operator, which is why the image does not make it for you.
+
+services:
+  app:
+    build: .
+    image: ghcr.io/tillheidrich/fundus:latest   # or build locally: docker compose build
+    restart: unless-stopped
+    init: true
+    # The variables below read from .env through ${…}; env_file additionally
+    # passes everything else in it (BATCH_MAX_PER_HOUR, TRUSTED_PROXIES, …)
+    # without a line here for each. Optional, so a fresh checkout starts.
+    env_file:
+      - path: .env
+        required: false
+    # The server needs no Linux capabilities: it listens above 1024 and runs
+    # as uid 10001. Only the entrypoint's first step keeps three, to hand
+    # volumes from older root-run versions to that user and then switch to
+    # it. no-new-privileges stops anything later from climbing back up.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    # Loopback only: a reverse proxy on the same host (Caddy, nginx) is the
+    # intended way in, with TLS. Publishing on all interfaces would put the
+    # login page on plain HTTP in front of the internet. To expose it
+    # directly anyway (e.g. inside a private network), use "8000:8000".
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      # ── Access ──────────────────────────────────────────────────────────────
+      # Registration is closed once the first account exists. Set a code to
+      # invite people, or OPEN_SIGNUP=1 to let anyone in (rarely what you want).
+      SIGNUP_CODE: "${SIGNUP_CODE:-}"
+      OPEN_SIGNUP: "${OPEN_SIGNUP:-0}"
+
+      # ── YouTube ─────────────────────────────────────────────────────────────
+      # yt-dlp player clients. The working set changes every few weeks;
+      # change it here, not in the code, when it shifts again.
+      YT_CLIENTS: "${YT_CLIENTS:-visionos,web}"
+      EXTRACTOR_AUTO_INSTALL: "${EXTRACTOR_AUTO_INSTALL:-0}"
+
+      # ── Local transcription ─────────────────────────────────────────────────
+      # The only transcript path independent of YouTube handing out subtitles.
+      # base is the sweet spot on 4 vCPU; small is noticeably better for German
+      # and roughly twice as slow. Set WHISPER_ENABLED=0 on a tiny box.
+      WHISPER_ENABLED: "${WHISPER_ENABLED:-1}"
+      WHISPER_MODEL: "${WHISPER_MODEL:-base}"
+
+      # ── Housekeeping ────────────────────────────────────────────────────────
+      # Downloads are deleted after this many hours. The server is a transfer
+      # point, not an archive.
+      CLEAN_AGE_HOURS: "${CLEAN_AGE_HOURS:-6}"
+      UPDATE_INTERVAL_H: "${UPDATE_INTERVAL_H:-0}"
+      TZ: "${TZ:-Europe/Berlin}"
+    volumes:
+      - app-data:/app/data          # accounts, settings — the only durable state
+      - whisper-models:/app/models  # ~150 MB per model, survives rebuilds
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health"]
+      interval: 5m
+      timeout: 20s
+      start_period: 40s
+
+volumes:
+  app-data:
+  whisper-models:

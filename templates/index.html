@@ -1,0 +1,2701 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F4F7FB">
+  <title>{{ app_name }}{% if brand_tag %} · {{ brand_tag }}{% endif %}</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7.5' fill='%23203AD2'/%3E%3Cg fill='%23F4F7FB'%3E%3Crect x='6.2' y='7.9' width='4.8' height='19.3' rx='1'/%3E%3Crect x='6.2' y='7.9' width='10.3' height='4.8' rx='1'/%3E%3Crect x='6.2' y='15.7' width='8.5' height='4.2' rx='1'/%3E%3Crect x='18.3' y='6.1' width='3' height='8.5' rx='1.5'/%3E%3Crect x='22.8' y='7.9' width='3' height='4.8' rx='1.5'/%3E%3C/g%3E%3Crect x='13.7' y='23' width='8.5' height='4.2' rx='1' fill='%23DEF766'/%3E%3C/svg%3E">
+  <style>
+    @font-face{font-family:"Space Grotesk";font-weight:400;font-style:normal;font-display:swap;src:url("/fonts/space-grotesk-latin-400-normal.woff2") format("woff2")}
+    @font-face{font-family:"Space Grotesk";font-weight:500;font-style:normal;font-display:swap;src:url("/fonts/space-grotesk-latin-500-normal.woff2") format("woff2")}
+    @font-face{font-family:"Space Grotesk";font-weight:700;font-style:normal;font-display:swap;src:url("/fonts/space-grotesk-latin-700-normal.woff2") format("woff2")}
+    @font-face{font-family:"Space Mono";font-weight:400;font-style:normal;font-display:swap;src:url("/fonts/space-mono-latin-400-normal.woff2") format("woff2")}
+    @font-face{font-family:"Space Mono";font-weight:700;font-style:normal;font-display:swap;src:url("/fonts/space-mono-latin-700-normal.woff2") format("woff2")}
+  </style>
+  <style>
+    :root{
+      /* Surfaces — a cool near-white, not grey: at L≥95% with almost no chroma
+         the eye reads "white with a blue cast", which is what keeps a tool UI
+         from looking like a system dialog. */
+      --paper:#F4F7FB; --card:#FCFDFE; --surface-2:#EBF0F7;
+
+      /* Text. Measured against --card: ink 17.4:1, muted 6.2:1 — both clear AA
+         even at the .62rem sizes this UI uses for meta lines. */
+      --ink:#111826; --muted:#59616F;
+
+      /* Three border roles, not one. The last is the important one: WCAG 1.4.11
+         wants 3:1 for any edge that identifies a control. The old warm line was
+         at 1.3:1 — technically a failure, and on a cool ground it also just
+         looks unfinished. --line-strong measures 3.3:1. */
+      --line:#DAE0E9; --line-soft:#E7ECF3; --line-strong:#767F91;
+
+      /* One accent family for everything you can act on: ultramarine,
+         oklch(0.450 0.231 267). Status carries meaning; the only other brand
+         colour is the marker below, and it is never interactive. */
+      --blue:#203AD2; --blue-dark:#1627AF; --blue-soft:#E9F1FF; --blue-line:#AEC4F3;
+      --accent-bg:color-mix(in oklab,var(--blue) 6%,transparent);
+
+      /* Marker, oklch(0.93 0.17 118): the brand's "find" (docs/BRAND.md).
+         Never text, never a control colour; only a highlight with ink on top
+         (14.9:1) and the cursor in the mark. */
+      --marker:#DEF766;
+
+      /* Status. Each has a surface tone and a darker ink tone: the surface tone
+         is legible on a button, but not at .64rem — small text gets the ink. */
+      --err:#C92F33; --err-ink:#A3141F;
+      --warn:#DA950B; --warn-ink:#764B00;
+      --ok:#25984D;
+
+      --label:#151F32; --label-ink:#E3E8F0;
+
+      /* Display and text share a family. Space Grotesk has no 600 — anything
+         asking for it silently renders 700, so the scale below uses 500/700. */
+      --display:"Space Grotesk",system-ui,sans-serif;
+      --sans:"Space Grotesk",system-ui,sans-serif;
+      --mono:"Space Mono",ui-monospace,"SF Mono",monospace;
+
+      --ease:cubic-bezier(.16,1,.3,1);
+      /* Cool shadows. Warm-brown shadow on a cool ground reads as dirt. */
+      --shadow-sm:0 1px 2px rgba(17,24,38,.05);
+      --shadow-md:0 1px 2px rgba(17,24,38,.04),0 0 0 1px rgba(255,255,255,.6) inset;
+      /* Card depth, taken from the marketing page: a hairline for the edge and
+         one long, very soft drop below. Lifts the card off the paper without
+         the smudge a short dark shadow leaves on a cool ground. */
+      --shadow-card:inset 0 1px 0 rgba(255,255,255,.9),0 1px 1px rgba(17,24,38,.04),0 18px 40px -30px rgba(17,24,38,.28);
+      --shadow-btn:0 10px 24px -12px rgba(17,24,38,.55);
+      /* Sidebar sits on a second neutral layer, a shade cooler than the page. */
+      --side-bg:#EEF2F8;
+      /* Type scale, ratio ~1.2: product UI, not a poster. */
+      --fs-xs:.72rem; --fs-sm:.84rem; --fs-md:.95rem; --fs-lg:1.14rem; --fs-xl:1.6rem; --fs-2xl:2rem;
+      /* Spacing rhythm on a 4px grid; sections breathe more than fields. */
+      --s1:.25rem; --s2:.5rem; --s3:.75rem; --s4:1rem; --s5:1.5rem; --s6:2rem; --s7:3rem;
+      /* Three radii in the whole file: 999px is graspable, 4px is a surface,
+         3px is a bar. Eleven different radii read as grown-together; three read
+         as decided. */
+      --r:4px; --r-sm:3px;
+      --nav-h:calc(60px + env(safe-area-inset-bottom));
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{-webkit-text-size-adjust:100%}
+    body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;min-height:100dvh;-webkit-font-smoothing:antialiased}
+    /* The paper grain is gone on purpose: its noise filter was tuned to warm
+       brown (0.45/0.40/0.32) and on a cool ground it reads as a dirty screen. */
+    /* Selecting text is finding it: the marker, the same as in the mark. */
+    ::selection{background:var(--marker);color:var(--ink)}
+    a{color:var(--blue-dark)}
+    .mono{font-family:var(--mono)}
+    svg{display:block}
+
+    /* Numbers that change in place must not shift horizontally. Counters,
+       progress and timestamps all update live — without tabular figures the
+       layout twitches on every tick, which is the most visible amateur tell
+       in a tool UI. */
+    .counter b,.stat .n,.bstat .big,.bstat .meta,.hits,.trstats,.metaline b,
+    .seg .tc,td.mono,.ver,.prog .lbl{font-variant-numeric:tabular-nums}
+
+    /* One focus ring for everything, instead of three competing ones. */
+    :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+    input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:0;border-color:var(--blue)}
+
+    /* Tactile feedback: scale, never translate — see the click handlers below. */
+    button,.btn,.mode,.segbtn{transition:transform .06s ease,background .14s var(--ease),border-color .14s var(--ease),color .14s var(--ease)}
+
+    @media (prefers-reduced-motion:reduce){
+      *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+    }
+
+    /* ── Shell: mobile-first, Sidebar ab 900px ── */
+    .shell{position:relative;z-index:1;min-height:100dvh}
+    .topbar{display:flex;align-items:center;gap:.7rem;padding:.85rem 1.1rem;padding-top:calc(.85rem + env(safe-area-inset-top));border-bottom:1px solid var(--line-soft);background:color-mix(in srgb,var(--paper) 88%,white);backdrop-filter:blur(8px);position:sticky;top:0;z-index:40}
+    .side{display:none}
+    .main{padding:1.2rem 1.1rem calc(var(--nav-h) + 2rem);max-width:1060px;margin:0 auto}
+
+    .wordmark{display:flex;align-items:center;gap:.55rem;min-width:0}
+    .logo{width:28px;height:28px;flex-shrink:0}
+    .wm-name{font-family:var(--display);font-weight:600;font-size:1.22rem;letter-spacing:-.01em}
+    .wm-name .u{color:var(--blue)}
+    .wm-tag{font-family:var(--mono);font-size:.62rem;color:var(--muted);letter-spacing:.02em}
+    .top-user{margin-left:auto;display:flex;align-items:center;gap:.6rem;font-size:.76rem;color:var(--muted)}
+    .top-user b{color:var(--ink);font-weight:600}
+    /* ── Waveform editor ──
+       The grips are 22px wide but drawn as a 2px line: a 2px hit target is
+       unusable with a finger, and this is a mobile-first UI. */
+    .tm-title{font-size:.76rem;color:var(--muted);margin-bottom:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .wave{position:relative;height:132px;background:var(--label);border-radius:var(--r);overflow:hidden;touch-action:none;cursor:crosshair;user-select:none}
+    .wave canvas{display:block;width:100%;height:100%}
+    /* Outside the selection is dimmed rather than hidden — you still need to
+       see what you are cutting away to know you cut the right thing. */
+    .wv-dim{position:absolute;top:0;bottom:0;background:rgba(17,24,38,.62);pointer-events:none}
+    .wv-head{position:absolute;top:0;bottom:0;width:1px;background:#fff;opacity:0;pointer-events:none}
+    .wv-head.on{opacity:.9}
+    .wv-grip{position:absolute;top:0;bottom:0;width:22px;margin-left:-11px;cursor:ew-resize;touch-action:none}
+    .wv-grip::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--blue-line)}
+    .wv-grip::after{content:"";position:absolute;left:4px;top:50%;margin-top:-13px;width:14px;height:26px;
+      border-radius:var(--r-sm);background:var(--blue-line);box-shadow:0 1px 3px rgba(17,24,38,.4)}
+    .wv-grip:hover::after,.wv-grip:focus-visible::after{background:#fff}
+    .wv-grip:focus-visible{outline:none}
+    .wv-scale{display:flex;justify-content:space-between;margin-top:.4rem;font-family:var(--mono);
+      font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums}
+    .wv-scale #tmTsel{color:var(--blue-dark);font-weight:700}
+    .tm-chaps{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.9rem}
+    .tm-chap{font-family:var(--mono);font-size:.66rem;padding:.3rem .55rem;border-radius:999px;line-height:1;
+      border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer;min-height:28px}
+    .tm-chap:hover{color:var(--blue);border-color:var(--blue)}
+    .lnk{color:var(--blue);cursor:pointer;background:none;border:none;font:inherit;font-size:.76rem;padding:.35rem .2rem}
+    /* Language switch. A form, not JavaScript: it has to work on the login
+       page too, and a full reload is the honest way to swap a server-rendered
+       page's language. */
+    .langsw{display:flex;gap:2px}
+    .langbtn{font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;cursor:pointer;
+      background:none;border:1px solid var(--line);color:var(--muted);
+      border-radius:999px;padding:.2rem .45rem;line-height:1;min-height:26px}
+    .langbtn:hover{color:var(--blue);border-color:var(--blue)}
+    .langbtn.on{color:var(--blue-dark);background:var(--accent-bg);border-color:color-mix(in oklab,var(--blue) 35%,transparent)}
+
+    /* Bottom-Navigation (mobil) */
+    .nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:space-around;align-items:stretch;background:color-mix(in srgb,var(--card) 94%,white);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 18px rgba(17,24,38,.07)}
+    .nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:.18rem;padding:.55rem .2rem .5rem;border:none;background:transparent;font:inherit;font-size:.62rem;font-weight:600;letter-spacing:.01em;color:var(--muted);cursor:pointer;min-height:44px;transition:color .18s var(--ease)}
+    .nav button svg{width:21px;height:21px}
+    .nav button.active{color:var(--blue-dark)}
+    .nav button.active svg{color:var(--blue)}
+    .nav button:active{transform:scale(.97)}
+    .nav button:focus-visible{outline-offset:-3px}
+    details>summary:focus-visible{outline-offset:-2px}
+
+    /* Desktop: Sidebar-Layout */
+    @media(min-width:900px){
+      .topbar{display:none}
+      .shell{display:grid;grid-template-columns:236px 1fr}
+      .side{display:flex;flex-direction:column;gap:.4rem;position:sticky;top:0;height:100dvh;padding:1.5rem .9rem 1.2rem;background:var(--side-bg);border-right:1px solid var(--line)}
+      .side .wordmark{padding:.2rem .6rem 1.4rem;flex-direction:row;align-items:center;gap:.6rem}
+      .side .logo{width:30px;height:30px}
+      .side .wm-name{font-size:1.28rem;font-weight:700;letter-spacing:-.02em}
+      .nav-label{font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.2rem .7rem .45rem}
+      .nav{position:static;flex-direction:column;justify-content:flex-start;background:transparent;border:none;box-shadow:none;padding:0;gap:2px}
+      .nav button{flex:none;flex-direction:row;justify-content:flex-start;gap:.7rem;padding:.55rem .7rem;border-radius:var(--r);font-size:.9rem;font-weight:500;text-align:left;min-height:38px;color:var(--muted)}
+      .nav button svg{width:18px;height:18px}
+      .nav button:hover{background:rgba(17,24,38,.045);color:var(--ink)}
+      /* Selected = raised onto the card surface, like the marketing page's
+         language switch. Weight stays put so the label does not jump. */
+      .nav button.active{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(17,24,38,.1),0 0 0 1px rgba(17,24,38,.06)}
+      .nav button.active svg{color:var(--blue)}
+      .nav button.nav-sep{margin-top:1.1rem;position:relative}
+      .nav button.nav-sep::before{content:"";position:absolute;left:.7rem;right:.7rem;top:-.6rem;height:1px;background:var(--line)}
+      .side-foot{margin-top:auto;padding:.9rem .7rem 0;border-top:1px solid var(--line);font-size:.76rem;color:var(--muted)}
+      .side-foot .who{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.45rem}
+      .side-foot .who b{color:var(--ink)}
+      .main{padding:3rem 3.5rem 5rem}
+    }
+    .nav-label{display:none}
+    @media(min-width:900px){.side .nav-label{display:block}}
+    .side-foot{display:none}
+    @media(min-width:900px){.side-foot{display:block}}
+    /* The bottom bar and the sidebar render the same items. Below 900px the
+       sidebar is hidden by .side{display:none}; above it, nothing was hiding
+       the bottom bar — so both appeared at once, the second one overlapping
+       the sidebar footer. */
+    @media(min-width:900px){.nav-mobile{display:none}}
+    .ver{font-family:var(--mono);font-size:.66rem;display:flex;align-items:center;gap:.4rem;color:var(--muted)}
+    .ver .dot{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+
+    .view{display:none;animation:fade .35s var(--ease)}
+    .view.active{display:block}
+    @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+    /* A calm header per view: mono eyebrow with the blue dot from the
+       marketing page, a fixed-size title (product UI, not a poster), one muted
+       line. The underline rule is gone; the eyebrow carries the accent. */
+    .page-head{margin-bottom:var(--s6);max-width:68ch}
+    .eyebrow{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:var(--s3)}
+    .eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue)}
+    .page-head h1{font-family:var(--display);font-weight:700;font-size:var(--fs-xl);letter-spacing:-.025em;line-height:1.1}
+    @media(min-width:900px){.page-head h1{font-size:var(--fs-2xl)}}
+    .page-head p{color:var(--muted);margin-top:var(--s3);max-width:62ch;font-size:var(--fs-md);line-height:1.6}
+
+    .pills{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:var(--s4)}
+    .preview{list-style:none;margin:.7rem 0 0;padding:0;display:flex;flex-direction:column;gap:.35rem}
+    .preview:empty{display:none}
+    .preview li{display:flex;flex-direction:column;gap:.05rem;padding:.45rem .65rem;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card);min-width:0}
+    .preview .pv-t{font-size:.84rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .preview .pv-t.muted,.preview .pv-more{color:var(--muted)}
+    .preview .pv-u{font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .preview .pv-more{font-size:.75rem;border:0;background:none;padding:.1rem .2rem}
+    .pill{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--card);box-shadow:inset 0 0 0 1px rgba(17,24,38,.09);padding:.32rem .7rem;border-radius:999px}
+    .pill.first{color:var(--blue-dark);background:var(--blue-soft);box-shadow:inset 0 0 0 1px var(--blue-line)}
+    .pill svg{width:13px;height:13px}
+
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:var(--s5) 1.25rem;box-shadow:var(--shadow-card);margin-bottom:var(--s4)}
+    /* Depth from one long soft drop plus an inner highlight, as on the
+       marketing page. A short dark shadow reads as smudge on this ground. */
+    @media(min-width:900px){.card{padding:var(--s6);margin-bottom:var(--s5)}}
+    .step-head{display:flex;align-items:center;gap:.7rem;margin-bottom:var(--s4)}
+    .step-badge{font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-dark);background:var(--blue-soft);border-radius:999px;padding:.2rem .6rem;white-space:nowrap}
+    .step-title{font-family:var(--display);font-weight:500;font-size:var(--fs-lg);letter-spacing:-.01em}
+
+    label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:.35rem;font-weight:500}
+    /* --line-strong, not --line: WCAG 1.4.11 asks for 3:1 on any edge that
+       identifies a control. The decorative card border would leave a field
+       almost invisible against the page. */
+    textarea,input[type=url],input[type=text],input[type=search],select{
+      width:100%;background:var(--card);border:1px solid var(--line-strong);border-radius:var(--r);
+      padding:.72rem .85rem;color:var(--ink);font:inherit;font-size:.92rem;outline:none;
+      transition:border-color .14s var(--ease),box-shadow .14s var(--ease)}
+    textarea:focus,input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+    textarea{resize:vertical;min-height:150px;font-family:var(--mono);font-size:.8rem;line-height:1.65}
+    textarea::placeholder,input::placeholder{color:#7D8898}
+    select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2359616F' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .75rem center;padding-right:2rem}
+    .counter{margin-top:.5rem;font-size:.76rem;color:var(--muted)}
+    .counter b{color:var(--ink);font-family:var(--mono)}
+
+    /* ── Modus-Auswahl: scrollbare Chips (mobil), Grid (Desktop) ── */
+    /* Alle Modi immer sichtbar — kein horizontales Scrollen, in dem
+       Optionen (z.B. Mergen) unbemerkt verschwinden. */
+    .modes{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
+    @media(min-width:900px){.modes{grid-template-columns:repeat(4,1fr)}}
+    /* One group for all modes. Without an extractor the media modes are
+       disabled and the note below says why; "Nur Text" keeps working. */
+    .mode-group{margin-top:var(--s2)}
+    .mode:disabled{opacity:.45;cursor:not-allowed}
+    .mode:disabled:hover{background:var(--paper)}
+    .mode-group .note{display:none;margin-top:var(--s3);font-size:var(--fs-xs);color:var(--warn-ink)}
+    .mode-group.noext .note{display:block}
+    .mode{text-align:left;cursor:pointer;padding:.75rem .85rem;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);font:inherit;color:var(--ink);transition:border-color .18s var(--ease),background .18s var(--ease)}
+    .mode:hover{background:var(--surface-2)}
+    .mode:active{transform:scale(.97)}
+    /* One pattern for every "this is selected" state: tint plus colour, never
+       a border-width jump. Weight stays at 500 so the label does not change
+       width when toggled — a 600→700 swap shifts the layout by a hair. */
+    .mode[aria-pressed="true"]{border-color:color-mix(in oklab,var(--blue) 35%,transparent);background:var(--accent-bg);color:var(--blue-dark);font-weight:500}
+    .mode .mt{display:flex;align-items:center;gap:.42rem;font-weight:600;font-size:.85rem;margin-bottom:.12rem}
+    .mode .mt svg{width:16px;height:16px;color:var(--blue-dark);flex-shrink:0}
+    .mode small{color:var(--muted);font-size:.7rem;line-height:1.3;display:block}
+
+    .opts{display:flex;flex-wrap:wrap;gap:.65rem 1.2rem;align-items:center;margin-top:1rem}
+    .opts .field{display:flex;align-items:center;gap:.5rem}
+    .opts .field label{margin:0}
+    .opts select{width:auto}
+    .check{display:inline-flex;align-items:center;gap:.5rem;font-size:.84rem;color:var(--ink);cursor:pointer;user-select:none;min-height:32px}
+    .check input{position:absolute;opacity:0;width:0;height:0}
+    .box{width:19px;height:19px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card);display:grid;place-items:center;transition:all .15s var(--ease);flex-shrink:0}
+    .box svg{width:12px;height:12px;opacity:0;transform:scale(.6);transition:all .15s var(--ease);color:#fff}
+    .check input:checked + .box{background:var(--blue);border-color:var(--blue)}
+    .check input:checked + .box svg{opacity:1;transform:none}
+    .check input:focus-visible + .box{box-shadow:0 0 0 3px var(--blue-soft)}
+    .subopts{display:none;margin-top:1rem}
+    .subopts.show{display:block}
+
+    .hintline{display:flex;gap:.45rem;align-items:flex-start;font-size:.75rem;color:var(--muted);margin-top:.8rem;line-height:1.5}
+    .hintline svg{width:14px;height:14px;flex-shrink:0;margin-top:.12rem;color:var(--warn)}
+
+    .ai-row{margin-top:1rem;padding:.9rem 1rem;background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:var(--r)}
+    .ai-row .ah{display:flex;align-items:center;gap:.5rem;font-weight:600;font-size:.87rem;margin-bottom:.25rem;color:var(--blue-dark)}
+    .ai-row .ah svg{width:16px;height:16px}
+    .ai-row p{font-size:.78rem;color:var(--blue-dark);margin-bottom:.5rem;opacity:.92}
+    .ai-row code{font-family:var(--mono);font-size:.72rem;background:var(--card);padding:.04rem .3rem;border-radius:var(--r-sm)}
+
+    details.cookie{margin-top:1.1rem;border:1px solid var(--line-soft);border-radius:var(--r);background:var(--paper);overflow:hidden}
+    details.cookie>summary{list-style:none;cursor:pointer;padding:.8rem .95rem;display:flex;align-items:center;gap:.55rem;font-size:.83rem;min-height:44px}
+    details.cookie>summary::-webkit-details-marker{display:none}
+    details.cookie>summary .lk{width:15px;height:15px;color:var(--muted);flex-shrink:0}
+    details.cookie>summary .cstate{margin-left:auto;font-family:var(--mono);font-size:.64rem;padding:.16rem .5rem;border-radius:999px;background:var(--surface-2);color:var(--muted)}
+    details.cookie>summary .cstate.on{background:var(--blue-soft);color:var(--blue-dark)}
+    details.cookie>summary .chev{width:14px;height:14px;color:var(--muted);transition:transform .2s var(--ease);flex-shrink:0}
+    details.cookie[open]>summary .chev{transform:rotate(180deg)}
+    .cbody{padding:0 .95rem 1rem}
+    .cbody p{font-size:.78rem;color:var(--muted);line-height:1.55;margin-bottom:.55rem}
+    .cbody ol{margin:.3rem 0 .8rem 1.1rem}
+    .cbody li{font-size:.78rem;color:var(--muted);line-height:1.7}
+    .cbtns{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.55rem}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font:inherit;font-weight:600;cursor:pointer;border:1px solid transparent;border-radius:999px;text-decoration:none;transition:transform .1s var(--ease),background .18s var(--ease),box-shadow .18s var(--ease),opacity .18s var(--ease)}
+    .btn svg{width:17px;height:17px}
+    .btn:active{transform:scale(.97)}
+    .btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+    /* The marketing page's primary button: an ink pill with the icon in its
+       own round chip at the trailing edge. The leading SVG every primary
+       button already carries is moved into that chip with `order`, so no
+       markup changed and each action keeps its own symbol. Full width on a
+       phone (thumb target), content width from 640px. */
+    .btn-primary{width:100%;justify-content:space-between;gap:.9rem;padding:.42rem .42rem .42rem 1.35rem;background:var(--ink);color:#fff;font-size:var(--fs-md);font-weight:500;min-height:50px;box-shadow:var(--shadow-btn)}
+    .btn-primary>svg{order:2;width:2.25rem;height:2.25rem;padding:.55rem;border-radius:50%;background:rgba(255,255,255,.14);flex-shrink:0;transition:transform .2s var(--ease),background .2s var(--ease)}
+    .btn-primary:hover{background:var(--blue-dark)}
+    .btn-primary:hover>svg{transform:translateX(2px);background:rgba(255,255,255,.2)}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+    .btn-primary:disabled>svg{transform:none}
+    .btn-primary:focus-visible{outline-offset:3px}
+    @media(min-width:640px){.btn-primary{width:auto;min-width:15rem}}
+    .btn-primary:not(:has(>svg)){justify-content:center;padding:.7rem 1.4rem}
+    .btn-ghost{padding:.5rem 1rem;font-size:.8rem;font-weight:500;background:transparent;color:var(--ink);border-color:transparent;box-shadow:inset 0 0 0 1px rgba(17,24,38,.26);min-height:40px}
+    .btn-ghost:hover{background:var(--card);box-shadow:inset 0 0 0 1px rgba(17,24,38,.32)}
+    .btn-mini{padding:.42rem .85rem;font-size:.76rem;font-weight:500;background:var(--card);color:var(--blue-dark);border-color:var(--blue-line);min-height:36px}
+    .btn-mini:hover{background:var(--blue-soft)}
+    .btn-primary.btn-mini{width:auto;min-width:0;padding:.45rem 1rem;background:var(--ink);color:#fff;border-color:transparent;min-height:36px}
+    .btn-primary.btn-mini:hover{background:var(--blue-dark)}
+    .btn-danger{padding:.45rem .85rem;font-size:.76rem;background:transparent;color:var(--err-ink);border-color:color-mix(in srgb,var(--err) 40%,transparent)}
+    .btn-danger:hover{background:color-mix(in srgb,var(--err) 12%,transparent)}
+    .btn:disabled{cursor:not-allowed}
+
+    .jobs{list-style:none;display:flex;flex-direction:column;gap:.5rem;margin-top:1.2rem}
+    .job{display:flex;align-items:center;gap:.65rem;padding:.7rem .8rem;background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--r);font-size:.8rem}
+    .job .ic{width:18px;height:18px;flex-shrink:0}
+    .job .ic svg{width:16px;height:16px}
+    .job .txt{flex:1;min-width:0}
+    .job .txt .t{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+    .job .txt .s{font-size:.7rem;color:var(--muted)}
+    .job.error .txt .s{color:var(--err)}
+    .job.done .ic svg{color:var(--blue)}
+    .job.error .ic svg{color:var(--err)}
+    .job.running .ic svg,.job.pending .ic svg{color:var(--muted)}
+    .pbar{height:4px;border-radius:var(--r-sm);background:var(--line-soft);overflow:hidden;margin-top:.35rem;display:none}
+    .job.running .pbar{display:block}
+    .pbar>span{display:block;height:100%;width:0;background:var(--blue);border-radius:var(--r-sm);transition:width .3s var(--ease)}
+    .spin{animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .result{margin-top:1.1rem;padding:1rem 1.1rem;border-radius:var(--r);display:none;font-size:.86rem}
+    .result.show{display:block}
+    .result.ok{background:var(--blue-soft);border:1px solid var(--blue-line)}
+    .result.bad{background:color-mix(in srgb,var(--err) 10%,var(--card));border:1px solid color-mix(in srgb,var(--err) 40%,transparent)}
+    .result.info{background:var(--surface-2);border:1px solid var(--line)}
+    .result .rl{display:flex;align-items:center;gap:.5rem;margin-bottom:.25rem;font-weight:500}
+    .result .rl svg{width:16px;height:16px;flex-shrink:0}
+    .dlrow{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+
+    /* dunkles „Label"-Panel für Text/Code — analoge Tape-Anmutung */
+    .textbox{background:var(--label);color:var(--label-ink);border-radius:var(--r);padding:1rem;font-size:.82rem;line-height:1.75;max-height:380px;overflow-y:auto;white-space:pre-wrap;margin-top:.8rem;font-family:var(--mono)}
+    .codeblock code{display:block;background:var(--label);color:var(--label-ink);padding:.9rem;border-radius:var(--r);font-family:var(--mono);font-size:.74rem;white-space:pre-wrap;word-break:break-word;line-height:1.65}
+    .metaline{font-size:.76rem;color:var(--muted);margin-top:.4rem}
+    .metaline b{color:var(--ink);font-weight:600}
+
+    .whisper{display:none;margin-top:1rem;padding:1rem;background:color-mix(in srgb,var(--warn) 14%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);border-radius:var(--r)}
+    .whisper.show{display:block}
+    .whisper h4{display:flex;align-items:center;gap:.45rem;font-size:.82rem;color:var(--warn-ink);margin-bottom:.6rem;font-weight:600}
+    .whisper h4 svg{width:15px;height:15px}
+
+    .grid2{display:grid;grid-template-columns:1fr;gap:.8rem 1rem}
+    @media(min-width:560px){.grid2{grid-template-columns:1fr 1fr}}
+    .ls-warn{margin-top:.9rem;display:flex;gap:.5rem;font-size:.78rem;color:var(--warn-ink);line-height:1.55}
+    .ls-warn svg{width:15px;height:15px;flex-shrink:0;margin-top:.15rem}
+
+    .empty{text-align:center;color:var(--muted);padding:2.2rem 1rem;font-size:.88rem}
+    .btn-ghost.btn-mini{box-shadow:none}
+
+    /* Loading, empty and error look different on purpose: a skeleton says
+       "coming", a dashed frame says "nothing yet, here is why", a tinted frame
+       with a retry says "this failed". A bare "lädt…" said all three. */
+    .state{display:flex;gap:.8rem;align-items:flex-start;padding:var(--s4);border-radius:var(--r);font-size:var(--fs-sm)}
+    .state svg{width:18px;height:18px;flex-shrink:0;margin-top:.1rem}
+    .state .st-t{font-weight:500;color:var(--ink)}
+    .state .st-h{font-size:var(--fs-xs);color:var(--muted);margin-top:.15rem;line-height:1.5}
+    .state .btn{margin-top:.6rem}
+    .state-empty{border:1px dashed var(--line-strong);background:var(--paper)}
+    .state-empty svg{color:var(--blue)}
+    .state-error{border:1px solid color-mix(in srgb,var(--err) 40%,transparent);background:color-mix(in srgb,var(--err) 7%,var(--card))}
+    .state-error svg,.state-error .st-t{color:var(--err-ink)}
+    .state-loading{flex-direction:column;gap:.55rem;padding:var(--s2) 0}
+    .skel{display:block;height:.7rem;border-radius:999px;background:linear-gradient(90deg,var(--surface-2) 0%,var(--line-soft) 45%,var(--surface-2) 90%);background-size:200% 100%;animation:skel 1.4s var(--ease) infinite}
+    .skel:nth-child(2){width:82%}.skel:nth-child(3){width:64%}
+    @keyframes skel{from{background-position:100% 0}to{background-position:-100% 0}}
+    @media (prefers-reduced-motion:reduce){.skel{animation:none}}
+    .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+    /* MCP: a ready-to-paste config. The token is masked until asked for —
+       this page gets screen-shared and screenshotted. */
+    .cfg{position:relative;margin-top:.4rem;background:var(--label);color:var(--label-ink);border-radius:var(--r);padding:.9rem 1rem;font-family:var(--mono);font-size:.72rem;line-height:1.7;white-space:pre-wrap;word-break:break-all;overflow:auto}
+    .tokenbox .btn{flex-shrink:0}
+    .tok-actions{display:flex;gap:.4rem;flex-shrink:0}
+
+    /* Transkript-Ansichtswechsel */
+    .segtoggle{display:inline-flex;gap:.2rem;padding:.22rem;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);margin-top:.8rem}
+    .segbtn{padding:.35rem .8rem;border:none;background:transparent;border-radius:var(--r-sm);font:inherit;font-size:.78rem;font-weight:500;color:var(--muted);cursor:pointer;min-height:32px}
+    .segbtn.active{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(17,24,38,.1)}
+
+    /* Transkript-Leser: Suche + anklickbare Zeitstempel */
+    .trbar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.8rem}
+    .trbar input[type=search]{flex:1;min-width:170px;margin:0;padding:.55rem .8rem;font-size:.85rem}
+    .hits{font-size:.75rem;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+    .seglist{background:var(--label);border-radius:var(--r);padding:.5rem;margin-top:.8rem;max-height:420px;overflow-y:auto}
+    .seg{display:flex;gap:.7rem;padding:.4rem .55rem;border-radius:var(--r);align-items:baseline}
+    .seg:hover{background:rgba(255,255,255,.05)}
+    .seg.hidden{display:none}
+    .seg .tc{font-family:var(--mono);font-size:.72rem;color:var(--blue-line);text-decoration:none;flex-shrink:0;padding-top:.1rem}
+    .seg .tc:hover{color:#fff;text-decoration:underline}
+    .seg .tx{color:var(--label-ink);font-size:.84rem;line-height:1.6}
+    .seg mark{background:var(--warn);color:var(--label);border-radius:var(--r-sm);padding:0 .15rem}
+    .trstats{display:flex;gap:1rem;flex-wrap:wrap;font-size:.74rem;color:var(--muted);margin-top:.5rem;font-family:var(--mono)}
+
+    /* Fortschritt beim Transkript-Abruf */
+    .prog{margin-top:.3rem}
+    .prog .track{height:6px;border-radius:var(--r-sm);background:var(--line-soft);overflow:hidden}
+    .prog .track>span{display:block;height:100%;width:0;background:var(--blue);border-radius:var(--r-sm);transition:width .5s var(--ease)}
+    .prog .lbl{font-size:.78rem;color:var(--muted);margin-top:.45rem;display:flex;align-items:center;gap:.45rem}
+
+    /* Batch-Statusleiste bei vielen URLs */
+    .bstat{margin-top:1rem;padding:.9rem 1rem;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);display:none}
+    .bstat.show{display:block}
+    .bstat .head{display:flex;align-items:baseline;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
+    .bstat .big{font-family:var(--display);font-size:1.15rem;font-weight:600}
+    .bstat .meta{font-size:.76rem;color:var(--muted);font-family:var(--mono)}
+    .bstat .track{height:8px;border-radius:var(--r-sm);background:var(--card);border:1px solid var(--line-soft);overflow:hidden;margin-top:.6rem}
+    .bstat .track>span{display:block;height:100%;width:0;background:var(--blue);border-radius:var(--r-sm);transition:width .6s var(--ease)}
+    .bstat .now{font-size:.76rem;color:var(--muted);margin-top:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .bstat .warn{margin-top:.6rem;font-size:.78rem;color:var(--warn-ink);display:none;gap:.4rem;align-items:flex-start}
+    .bstat .warn.show{display:flex}
+    .bstat .warn svg{width:15px;height:15px;flex-shrink:0;margin-top:.1rem}
+    .jobs.many{max-height:260px;overflow-y:auto}
+
+    /* Export-Dialog */
+    .modal{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:1.2rem;background:rgba(17,24,38,.45);backdrop-filter:blur(3px)}
+    .modal.show{display:flex}
+    .modal-box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:1.5rem;max-width:430px;width:100%;box-shadow:0 12px 40px rgba(17,24,38,.22);max-height:90dvh;overflow-y:auto}
+    .modal-box h3{font-family:var(--display);font-weight:600;font-size:1.3rem;margin-bottom:.25rem}
+    .modal-box .sub{color:var(--muted);font-size:.85rem;margin-bottom:1.2rem}
+    .modal-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.6rem 0}
+    .modal-row + .modal-row{border-top:1px solid var(--line-soft)}
+    .modal-row label{margin:0;font-size:.88rem;color:var(--ink);font-weight:500}
+    .modal-row select{width:auto;margin:0;padding:.45rem 2rem .45rem .7rem;font-size:.85rem}
+    .hintsm{font-size:.74rem;color:var(--muted);margin-top:.35rem;line-height:1.5}
+    .dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35rem;margin-top:.6rem;padding:1.2rem 1rem;border:1.5px dashed var(--line);border-radius:var(--r);text-align:center;cursor:pointer;font-size:.82rem;color:var(--muted);transition:border-color .15s,background .15s}
+    .dropzone:hover,.dropzone.over{border-color:var(--blue-dark);background:var(--accent-bg);color:inherit}
+    .dropzone input{display:none}
+    .dropzone b{color:inherit}
+    .subsec{margin-top:1.4rem;padding-top:1.1rem;border-top:1px solid var(--line-soft)}
+    .hintsm code{font-family:var(--mono);font-size:.72rem;background:var(--surface-2);padding:.05rem .3rem;border-radius:var(--r-sm)}
+    /* Schalter */
+    .sw{position:relative;width:44px;height:26px;flex-shrink:0}
+    .sw input{position:absolute;opacity:0;width:0;height:0}
+    .sw .kn{position:absolute;inset:0;background:var(--line);border-radius:999px;cursor:pointer;transition:background .18s var(--ease)}
+    .sw .kn::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .18s var(--ease);box-shadow:0 1px 3px rgba(17,24,38,.3)}
+    .sw input:checked + .kn{background:var(--blue)}
+    .sw input:checked + .kn::after{transform:translateX(18px)}
+    .sw input:focus-visible + .kn{box-shadow:0 0 0 3px var(--blue-soft)}
+
+    /* Admin */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.6rem;margin-bottom:1.1rem}
+    .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:.9rem 1rem}
+    .stat .n{font-family:var(--display);font-size:1.6rem;font-weight:600}
+    .stat .l{font-size:.72rem;color:var(--muted);margin-top:.05rem}
+    .tablewrap{overflow-x:auto;margin:0 -1.25rem;padding:0 1.25rem}
+    @media(min-width:900px){.tablewrap{margin:0;padding:0}}
+    table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:520px}
+    th{text-align:left;font-weight:600;color:var(--muted);font-size:.72rem;padding:.5rem .5rem;border-bottom:1px solid var(--line)}
+    td{padding:.6rem .5rem;border-bottom:1px solid var(--line-soft)}
+    td.mono{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+    .tag-admin{font-size:.64rem;color:var(--blue);font-weight:700}
+    .tag-blocked{font-size:.64rem;color:#fff;background:var(--err);padding:.1rem .4rem;border-radius:var(--r-sm)}
+
+    .tokenbox{display:flex;gap:.5rem;align-items:center;background:var(--label);color:var(--label-ink);border-radius:var(--r);padding:.7rem .9rem;font-family:var(--mono);font-size:.76rem;overflow:auto}
+    .tokenbox span{overflow-x:auto;white-space:nowrap;flex:1}
+    .kv{margin-bottom:1rem}
+    /* Component list: label left, value right, missing ones in the error tone
+       so a gap is visible without reading every line. */
+    #compBox .kv{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+      margin-bottom:.45rem;padding-bottom:.45rem;border-bottom:1px solid var(--line-soft);font-size:.78rem}
+    #compBox .kv:last-of-type{border-bottom:none}
+    #compBox .mono{font-size:.72rem;color:var(--ink);text-align:right;word-break:break-word}
+    #compBox .warnval{color:var(--err-ink);font-weight:700}
+    .kv .k{font-size:.76rem;color:var(--muted);margin-bottom:.35rem;font-weight:500}
+    .lib-search{display:flex;gap:.6rem;margin-bottom:1rem}
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Mobile Topbar -->
+  <header class="topbar">
+    <div class="wordmark">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="15" fill="var(--blue)"/>
+        <g fill="var(--card)"><rect x="12.4" y="15.8" width="9.6" height="38.6" rx="1.9"/><rect x="12.4" y="15.8" width="20.5" height="9.6" rx="1.9"/><rect x="12.4" y="31.5" width="16.9" height="8.4" rx="1.9"/><rect x="36.5" y="12.2" width="6" height="16.9" rx="3"/><rect x="45.6" y="15.8" width="6" height="9.6" rx="3"/></g>
+        <rect x="27.5" y="46" width="16.9" height="8.4" rx="1.9" fill="var(--marker)"/>
+      </svg>
+      <div>
+        <div class="wm-name">{{ app_name }}<span class="u">_</span></div>
+        {% if brand_tag %}<div class="wm-tag">{{ brand_tag }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="top-user">
+      <form method="post" action="/api/lang" class="langsw">
+        {% for code in languages %}
+        <button type="submit" name="lang" value="{{ code }}"
+                class="langbtn{% if code == lang %} on{% endif %}"
+                aria-pressed="{{ 'true' if code == lang else 'false' }}">{{ code|upper }}</button>
+        {% endfor %}
+      </form>
+      {% if not is_local %}<b>{{ username }}</b><button class="lnk" onclick="logout()">abmelden</button>{% endif %}</div>
+  </header>
+
+  <!-- Desktop Sidebar -->
+  <aside class="side">
+    <div class="wordmark">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="15" fill="var(--blue)"/>
+        <g fill="var(--card)"><rect x="12.4" y="15.8" width="9.6" height="38.6" rx="1.9"/><rect x="12.4" y="15.8" width="20.5" height="9.6" rx="1.9"/><rect x="12.4" y="31.5" width="16.9" height="8.4" rx="1.9"/><rect x="36.5" y="12.2" width="6" height="16.9" rx="3"/><rect x="45.6" y="15.8" width="6" height="9.6" rx="3"/></g>
+        <rect x="27.5" y="46" width="16.9" height="8.4" rx="1.9" fill="var(--marker)"/>
+      </svg>
+      <div>
+        {% if brand_tag %}<div class="wm-tag">{{ brand_tag }}<span style="color:var(--blue)">_</span></div>{% endif %}
+        <div class="wm-name">{{ app_name }}<span class="u">_</span></div>
+      </div>
+    </div>
+    <div class="nav-label">Werkzeuge</div>
+    <nav class="nav nav-desktop" aria-label="Hauptnavigation"></nav>
+    <div class="side-foot">
+      {% if not is_local %}
+      <div class="who"><span>Angemeldet: <b>{{ username }}</b></span><button class="lnk" onclick="logout()">abmelden</button></div>
+      {% endif %}
+      <div class="ver" id="verD"><span class="dot"></span>yt-dlp lädt…</div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ── DATEIEN ──
+         The start page. Opens in file mode; if the server reports no
+         extractor, the script switches to text mode and disables the media
+         modes, which all need yt-dlp. -->
+    <section id="download" class="view active">
+      <div class="page-head">
+        <div class="eyebrow">Laden</div>
+        <h1>Videos, Fotos und Text laden</h1>
+        <p>Links einfügen, Format wählen, fertig: als Datei, als MP3, zusammengeschnitten, als Paket mit Metadaten oder nur als Text.</p>
+        <div class="pills">
+          <span class="pill first">YouTube</span>
+          <span class="pill first">Podcasts</span>
+          <span class="pill">Threads</span>
+          <span class="pill">TikTok</span>
+          <span class="pill">Instagram</span>
+        </div>
+      </div>
+
+      {% if is_desktop %}
+      <!-- Media opt-in (Mac app only). Shown while no extractor is installed:
+           Fundus downloads no media itself and installs yt-dlp only on an
+           explicit, recorded consent (POST /api/media/install). -->
+      <div class="card" id="mediaOffCard" style="display:none">
+        <div class="step-head"><span class="step-badge">Medien</span><span class="step-title">Medien-Download ist aus</span></div>
+        <p class="metaline" style="margin-bottom:.8rem">Fundus selbst lädt keine Medien. Auf Wunsch installiert es das Open-Source-Werkzeug yt-dlp aus dem offiziellen Paketverzeichnis PyPI. Für die Nutzung bist du selbst verantwortlich.</p>
+        <p class="metaline" style="margin-bottom:.8rem">Transkripte (Untertitel) von YouTube funktionieren immer, auch ohne yt-dlp.</p>
+        <label class="check"><input type="checkbox" id="mediaConsentDl"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>Fundus lädt selbst keine Videos. Wenn du yt-dlp installierst, kommt es direkt aus dem offiziellen Paketverzeichnis (PyPI) und läuft unter deiner Verantwortung. Lade nur Inhalte, die du vervielfältigen darfst: eigene, frei lizenzierte oder mit Erlaubnis. In Deutschland ist das Umgehen technischer Schutzmaßnahmen verboten (§ 95a UrhG); nach OLG Hamburg (5 U 54/23) betrifft das auch das Herunterladen von YouTube-Videos.</label>
+        <div class="dlrow" style="margin-top:.8rem"><button class="btn btn-mini" onclick="installExtractor('mediaConsentDl',this)">yt-dlp installieren</button></div>
+      </div>
+      {% endif %}
+
+      <div class="card">
+        <div class="step-head"><span class="step-badge">01</span><span class="step-title">Links</span></div>
+        <label for="urls">Eine URL pro Zeile</label>
+        <textarea id="urls" spellcheck="false" inputmode="url" placeholder="https://www.youtube.com/watch?v=…
+https://youtu.be/…
+https://www.threads.com/@…/post/…
+https://www.tiktok.com/@…/video/…"></textarea>
+        <div class="counter"><b id="count">0</b> URL(s) erkannt</div>
+        <div id="urlAdvice"></div>
+        <ul class="preview" id="urlPreview" aria-live="polite"></ul>
+        <div class="hintline" id="clipOffer" style="display:none;margin-top:.6rem;gap:.6rem;align-items:center;flex-wrap:wrap;word-break:break-all"></div>
+      </div>
+
+      <div class="card">
+        <div class="step-head"><span class="step-badge">02</span><span class="step-title">Was soll rauskommen?</span></div>
+
+        <div class="mode-group" id="mediaGroup">
+        <div class="modes" role="group" aria-label="Modus">
+          <button class="mode" aria-pressed="true" data-mode="video" onclick="setMode('video')">
+            <span class="mt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v11m0 0l-3.5-3.5M12 14l3.5-3.5"/><rect x="4" y="17" width="16" height="4" rx="1.5"/></svg>Dateien</span>
+            <small>Jeder Link als Datei. Bei IG- und Threads-Posts kommt der Text automatisch mit</small></button>
+          <button class="mode" aria-pressed="false" data-mode="mp3" onclick="setMode('mp3')">
+            <span class="mt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>MP3</span>
+            <small>Nur die Tonspur, beste Qualität</small></button>
+          <button class="mode" aria-pressed="false" data-mode="merge" onclick="setMode('merge')">
+            <span class="mt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="13" width="7" height="7" rx="1.5"/><path d="M13 11.5h4a2 2 0 0 0 2-2V8m-6 4.5h4a2 2 0 0 1 2 2V16"/></svg>Merge</span>
+            <small>Alle Clips zu einem Video</small></button>
+          <button class="mode" aria-pressed="false" data-mode="pack" onclick="setMode('pack')">
+            <span class="mt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/></svg>Pack</span>
+            <small>Medien + Metadaten (.md/.json), optional Transkripte</small></button>
+          <button class="mode" aria-pressed="false" data-mode="text" onclick="setMode('text')">
+            <span class="mt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 10h16M4 14h10M4 18h13"/></svg>Nur Text</span>
+            <small>Titel, Beschreibung, Untertitel oder Caption, ohne Mediendateien</small></button>
+        </div>
+        <p class="note" role="status">yt-dlp wurde auf diesem System nicht gefunden. Dateien, MP3, Merge und Pack brauchen es und sind deshalb abgeschaltet — „Nur Text“ funktioniert ohne.</p>
+
+        <!-- Merge: Zielformat -->
+        <div class="subopts" id="mergeOpts">
+          <div class="opts">
+            <div class="field"><label for="mres">Zielformat</label>
+              <select id="mres"><option value="1080x1920">Vertikal · 1080×1920</option><option value="1920x1080">Horizontal · 1920×1080</option><option value="1080x1080">Quadratisch · 1080×1080</option></select></div>
+          </div>
+        </div>
+
+        <!-- Standard-Optionen -->
+        <div class="subopts show" id="dlOpts">
+          <div class="opts">
+            <div class="field" id="qualField"><label for="quality">Auflösung</label>
+              <select id="quality"><option value="best">Beste</option><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option><option value="240">240p</option><option value="144">144p</option></select></div>
+            <!-- Ein Karussell kann Fotos und Videos mischen. Vorher kam immer
+                 beides, und „nur die Fotos" ließ sich gar nicht sagen. -->
+            <div class="field" id="afmtField" style="display:none"><label for="afmt">Audioformat</label>
+              <select id="afmt"><option value="mp3">MP3 — spielt überall</option><option value="m4a">M4A (AAC)</option><option value="opus">Opus — klein, sehr gut</option><option value="original">Original — ohne Umwandlung</option></select></div>
+            <div class="field" id="mediaField"><label for="mediaSel">Aus dem Beitrag</label>
+              <select id="mediaSel"><option value="alle">Fotos und Videos</option><option value="fotos">Nur Fotos</option><option value="videos">Nur Videos</option></select></div>
+            <label class="check" id="allPartsWrap"><input type="checkbox" id="allParts"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>Alle Teile (Carousel / Playlist, max. 30)</label>
+          </div>
+        </div>
+
+        <!-- Pack-Optionen -->
+        <div class="subopts" id="packOpts">
+          <div class="ai-row">
+            <div class="ah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg>AI-Paket</div>
+            <p>Der Batch erzeugt <code>.md</code> + <code>.json</code> mit Titel, Link, Creator, Datum &amp; Beschreibung — bereit für Claude.</p>
+            <label class="check"><input type="checkbox" id="withTr"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>Transkripte einbeziehen (YouTube)</label>
+          </div>
+          <div class="opts">
+            <div class="field"><label for="stills">Stills</label>
+              <select id="stills"><option value="off">Keine</option><option value="one">1 Titelbild</option><option value="auto">Auto (nach Länge)</option></select></div>
+            <label class="check"><input type="checkbox" id="discardVid"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>Nur Audio + Stills + Daten (Video verwerfen)</label>
+          </div>
+        </div>
+
+        <p class="hintline" id="threadsHint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>Threads-Posts: Text landet automatisch als <span class="mono">post.md</span> + <span class="mono">post.txt</span>, Fotos &amp; Videos daneben. IG-Bildposts &amp; Carousels gehen ohne Extra-Einstellung.</span></p>
+        </div>
+
+        <details class="cookie">
+          <summary><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Cookies <span style="color:var(--muted)">Anmeldung für eigene oder private Inhalte</span><span class="cstate" id="cstate">—</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></summary>
+          <div class="cbody">
+            <p>Öffentliche Inhalte laden <b>ohne Login</b>. Cookies brauchst du nur für private oder altersbeschränkte Posts — sie bleiben in deinem Account gespeichert.</p>
+            <ol><li>Extension <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank" rel="noopener">„Get cookies.txt LOCALLY"</a> installieren.</li><li>Bei instagram.com eingeloggt → Export (Netscape).</li><li>Hier einfügen und speichern.</li></ol>
+            <label for="cookies">Cookie-Datei (Netscape)</label>
+            <textarea id="cookies" style="min-height:70px" spellcheck="false" placeholder="# Netscape HTTP Cookie File&#10;.instagram.com&#9;TRUE&#9;/&#9;TRUE&#9;…"></textarea>
+            <div class="cbtns"><button class="btn btn-ghost" onclick="saveCookies()">Speichern</button><button class="btn btn-ghost" onclick="clearCookies()">Löschen</button><span class="metaline" id="cmsg"></span></div>
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="step-head"><span class="step-badge">03</span><span class="step-title">Los</span></div>
+        <button class="btn btn-primary" id="run" onclick="startBatch()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m0 0l-5-5m5 5l-5 5"/></svg><span id="runLabel">Herunterladen</span></button>
+        <div class="bstat" id="bstat">
+          <div class="head">
+            <span class="big" id="bsCount">0 / 0</span>
+            <span class="meta" id="bsMeta"></span>
+          </div>
+          <div class="track"><span id="bsBar"></span></div>
+          <div class="now" id="bsNow"></div>
+          <div class="warn" id="bsWarn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>
+            <span id="bsWarnTxt"></span>
+          </div>
+        </div>
+        <ul class="jobs" id="jobs"></ul>
+        <div class="result" id="result"></div>
+
+        <details class="cookie" style="margin-top:1rem">
+          <summary><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14"/></svg>Lieber lokal auf dem Mac? Bash-Script generieren<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></summary>
+          <div class="cbody">
+            <p>Große Merges laufen lokal schneller. Für private Instagram-Posts unten deinen Browser wählen — das Script nutzt dann dein Login (<span class="mono">--cookies-from-browser</span>).</p>
+            <div class="opts" style="margin-top:.2rem;margin-bottom:.8rem">
+              <div class="field"><label for="lsBrowser">Browser-Login</label>
+                <select id="lsBrowser"><option value="">keins</option><option value="chrome">Chrome</option><option value="safari">Safari</option><option value="firefox">Firefox</option><option value="edge">Edge</option><option value="brave">Brave</option></select></div>
+            </div>
+            <div class="dlrow" style="margin-top:0">
+              <button class="btn btn-ghost" style="flex:1" onclick="getDownloadScript()">Download-Script</button>
+              <button class="btn btn-ghost" style="flex:1" onclick="getMergeScript()">Nur Merge-Befehl</button>
+            </div>
+            <p class="hintsm">„Nur Merge" fügt Clips zusammen, die schon in <span class="mono">~/Downloads/downloader</span> liegen — praktisch, wenn der Download lief, das Zusammenfügen aber nicht.</p>
+            <div id="scriptOut"></div>
+          </div>
+        </details>
+        <p class="metaline" id="retention" style="margin-top:.8rem"></p>
+      </div>
+    </section>
+
+    <!-- ── TRANSKRIPT ── -->
+    <section id="transcript" class="view">
+      <div class="page-head"><div class="eyebrow">Transkript</div><h1>Gesprochenes als Text</h1><p>YouTube liefert Untertitel in Originalsprache. Fehlen sie, schreibt Whisper mit: hier oder per Befehl auf deinem Rechner. Eigene Audio- und Videodateien gehen auch.</p></div>
+      <div class="card">
+        <label for="trUrl">Video-URL</label>
+        <input type="url" id="trUrl" spellcheck="false" placeholder="https://www.youtube.com/watch?v=… · https://youtu.be/…">
+        <div class="opts">
+          <div class="field"><label for="trLang">Sprache</label>
+            <select id="trLang"><option value="native">Native (Videosprache)</option><option value="de">Deutsch</option><option value="en">Englisch</option><option value="fr">Français</option><option value="es">Español</option></select></div>
+        </div>
+        <label for="trPrompt" style="margin-top:1rem">Namen und Fachbegriffe (optional)</label>
+        <input type="text" id="trPrompt" maxlength="200" spellcheck="false" placeholder="Erika Mustermann, Kubernetes, Fundus">
+        <p class="hintsm">Hilft Whisper bei Eigennamen. Wirkt nur, wenn transkribiert wird, nicht bei vorhandenen Untertiteln.</p>
+        <button class="btn btn-primary" id="trRun" onclick="startTranscript()" style="margin-top:1.1rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 10h16M4 14h10M4 18h13"/></svg>Transkript holen</button>
+
+        <div class="subsec">
+          <label for="trFile">Eigene Datei transkribieren</label>
+          <label class="dropzone" id="trDrop" for="trFile">
+            <input type="file" id="trFile" accept=".mp3,.m4a,.wav,.ogg,.opus,.flac,.aac,.mp4,.mov,.webm,.mkv,audio/*,video/*" onchange="trFilePicked(this.files)">
+            <span><b>Datei hierher ziehen</b> oder klicken</span>
+            <span id="trFileName"></span>
+          </label>
+          <p class="hintsm">Audio oder Video von deinem Rechner. Wird lokal mit Whisper transkribiert und danach gelöscht.</p>
+        </div>
+        <div class="result" id="trResult"></div>
+
+        <details class="cookie" id="ytckBox">
+          <summary><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4.5" y="10" width="15" height="10" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>YouTube-Cookies <span style="color:var(--muted)">für eigene oder private Videos</span><span class="cstate" id="ytcstate">—</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></summary>
+          <div class="cbody">
+            <p>YouTube blockt die Rechenzentrums-IP dieses Servers. Mit deinen Cookies zählt der Abruf als eingeloggter Nutzer — dann läuft das Transkript direkt hier, ohne Umweg über den Mac.</p>
+            <ol>
+              <li><b>Neues Inkognito-Fenster</b> öffnen und dort mit einem <b>Wegwerf-Google-Konto</b> bei youtube.com einloggen.</li>
+              <li>Extension <a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc" target="_blank" rel="noopener">„Get cookies.txt LOCALLY"</a> → Export im Format <b>Netscape</b>.</li>
+              <li>Hier einfügen, speichern — und das Inkognito-Fenster <b>schließen, ohne dich auszuloggen</b>. Sonst laufen die Cookies sofort ab.</li>
+            </ol>
+            <p class="hintsm" style="margin-bottom:.7rem">Nimm nicht dein Hauptkonto: YouTube kann Accounts sperren, die von wechselnden Server-IPs abgerufen werden. Cookies halten erfahrungsgemäß einige Wochen — wenn Transkripte wieder scheitern, hier neu einfügen.</p>
+            <label for="ytcookies">Cookie-Datei (Netscape)</label>
+            <textarea id="ytcookies" style="min-height:70px" spellcheck="false" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com&#9;TRUE&#9;/&#9;TRUE&#9;…"></textarea>
+            <div class="cbtns"><button class="btn btn-ghost" onclick="saveYtCookies()">Speichern</button><button class="btn btn-ghost" onclick="clearYtCookies()">Löschen</button><span class="metaline" id="ytcmsg"></span></div>
+          </div>
+        </details>
+
+        <div class="whisper" id="whisper">
+          <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 5l-2 14"/></svg>Auf deinem Mac klappt es — dort blockt YouTube nicht</h4>
+          <p class="hintsm" style="margin-bottom:.7rem">Dieser Server hat eine Rechenzentrums-IP, die YouTube sperrt. Von einer normalen Leitung aus ist das kein Problem.</p>
+          <div class="dlrow" style="margin-top:0">
+            <button class="btn btn-mini" onclick="ytLocalCmd()">Untertitel-Befehl (schnell)</button>
+            <button class="btn btn-ghost" onclick="toggleWhisperCmd()">Whisper-Befehl (gesprochener Text)</button>
+          </div>
+          <div id="ytLocal"></div>
+          <div id="whisperWrap" style="display:none">
+            <div class="codeblock" style="margin-top:.6rem"><code id="whisperCmd"></code></div>
+            <button class="btn btn-ghost" style="margin-top:.7rem" onclick="copyEl('whisperCmd',this)">Kopieren</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PODCAST ── -->
+    <section id="podcast" class="view">
+      <div class="page-head"><div class="eyebrow">Podcast</div><h1>Folgen mit Shownotes und Transkript</h1><p>Links zu Folgen rein — Spotify, Apple, RSS oder die Website der Sendung. Zurück kommen Ton, Shownotes und, wo die Sendung eines veröffentlicht, das offizielle Transkript. Fehlt es, liegt ein Script für deinen Rechner dabei.</p></div>
+
+      <div class="card">
+        <div class="step-head"><span class="step-badge">01</span><span class="step-title">Folgen</span></div>
+        <label for="pcUrls">Ein Link pro Zeile</label>
+        <textarea id="pcUrls" spellcheck="false" style="min-height:120px" placeholder="https://open.spotify.com/episode/…&#10;https://podcasts.apple.com/de/podcast/…&#10;https://feeds.example.com/podcast.xml"></textarea>
+        <div class="counter"><b id="pcCount">0</b> Folgen</div>
+
+        <details class="cookie" style="margin-top:.9rem">
+          <summary><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 10h16M4 14h10M4 18h13"/></svg>Auftragszettel einfügen<span style="color:var(--muted)"> — von deinem KI-Assistenten</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></summary>
+          <div class="cbody">
+            <p>Wenn ein Assistent die Folgen schon aufgelöst hat, kommt hier sein Zettel rein — mit GUID, Feed und Dauer findet Fundus die Folge sicher statt über den Titel zu raten.</p>
+            <textarea id="pcSheet" spellcheck="false" style="min-height:90px;font-size:.72rem" placeholder='{"schema":"fundus-podcast/1","episodes":[{"source":"https://…","feed":"https://…","guid":"…","duration_s":2352}]}'></textarea>
+
+            <p style="margin-top:1rem"><b>Noch keinen Zettel?</b> Gib deinem Assistenten diesen Auftrag. Er enthält die Adresse der vollständigen Anleitung, die der Assistent selbst abrufen kann — damit steht das Schema nicht in deiner Nachricht und veraltet nicht mit ihr.</p>
+            <pre id="pcPrompt" style="white-space:pre-wrap;font-size:.72rem;background:var(--accent-bg);padding:.7rem .8rem;border-radius:var(--r-sm);margin:0">Lies zuerst <span id="pcBriefUrl">/api/podcast/auftragszettel.md</span> und halte dich an das Schema darin.
+
+Ich gebe dir unten Podcast-Folgen. Finde für jede den RSS-Feed, die GUID, die Dauer in Sekunden und das Datum. Erfinde nichts — ein Feld, das du nicht sicher weißt, lässt du weg.
+
+Antworte mit einem einzigen JSON-Objekt, nichts davor und nichts danach.
+
+Folgen:
+- </pre>
+            <div class="dlrow" style="margin-top:.7rem">
+              <button class="btn btn-ghost" onclick="copyEl('pcPrompt',this)">Auftrag kopieren</button>
+              <a class="btn btn-ghost" href="/api/podcast/auftragszettel.md" download="fundus-auftragszettel.md">Anleitung herunterladen</a>
+            </div>
+          </div>
+        </details>
+
+        <div class="opts" style="margin-top:1rem">
+          <div class="field"><label for="pcAudio">Ton</label>
+            <select id="pcAudio">
+              <option value="klein" selected>Klein (Mono, Sprache — ca. 21 MB/Std)</option>
+              <option value="original">Original aus dem Feed</option>
+              <option value="nein">Kein Ton, nur Shownotes und Transkript</option>
+            </select></div>
+        </div>
+        <p class="hintsm">Klein reicht zum Hören und für Whisper. Original lädt, was die Sendung ausliefert — bei manchen ein Titelbild im Datenstrom, das die Datei verdoppelt.</p>
+
+        <button class="btn btn-primary" id="pcRun" onclick="podcastStart()" style="margin-top:1.1rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Folgen holen</button>
+
+        <div class="prog" id="pcProg" style="display:none">
+          <div class="track"><span id="pcBar"></span></div>
+          <div class="lbl" id="pcStage"></div>
+        </div>
+        <div class="result" id="pcResult"></div>
+      </div>
+
+      <div class="card" id="pcOut" style="display:none">
+        <div class="step-head"><span class="step-badge">02</span><span class="step-title">Ergebnis</span></div>
+        <div id="pcTable"></div>
+        <div class="dlrow" id="pcActions" style="margin-top:1rem"></div>
+        <div class="subsec" id="pcUpWrap" style="display:none">
+          <label for="pcUpFile">Ergebnisse aus dem Whisper-Script hochladen</label>
+          <input type="file" id="pcUpFile" multiple accept=".vtt,.srt,.txt" onchange="pcUpload(this.files)">
+          <p class="hintsm">Die .vtt-, .srt- oder .txt-Dateien aus den Folgenordnern. Zugeordnet wird über den Anfang des Dateinamens. Danach findet die Suche auch diese Folgen.</p>
+          <div id="pcUpResult" class="metaline" style="margin-top:.5rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SCHNITT ── -->
+    <section id="trim" class="view">
+      <div class="page-head"><div class="eyebrow">Schnitt</div><h1>Ton zuschneiden</h1><p>Intro und Outro wegschneiden, sauber ein- und ausblenden, als MP3 speichern. Die Wellenform zeigt, wo geredet wird — die Stille davor und danach sieht man sofort.</p></div>
+
+      <div class="card">
+        <div class="step-head"><span class="step-badge">01</span><span class="step-title">Ton holen</span></div>
+        <label for="tmUrl">Video- oder Audio-URL</label>
+        <input type="url" id="tmUrl" spellcheck="false" placeholder="https://youtu.be/… · https://example.com/folge.mp3">
+        <button class="btn btn-primary" id="tmLoad" onclick="trimLoad()" style="margin-top:1.1rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Ton laden</button>
+        <div class="result" id="tmResult"></div>
+      </div>
+
+      <div class="card" id="tmEditor" style="display:none">
+        <div class="step-head"><span class="step-badge">02</span><span class="step-title">Zuschneiden</span></div>
+        <div class="tm-title mono" id="tmTitle"></div>
+
+        <div class="wave" id="tmWave">
+          <canvas id="tmCanvas"></canvas>
+          <div class="wv-dim" id="tmDimL"></div>
+          <div class="wv-dim" id="tmDimR"></div>
+          <div class="wv-head" id="tmHead"></div>
+          <div class="wv-grip" id="tmGripA" data-edge="a" role="slider" aria-label="Startpunkt" tabindex="0"></div>
+          <div class="wv-grip" id="tmGripB" data-edge="b" role="slider" aria-label="Endpunkt" tabindex="0"></div>
+        </div>
+        <div class="wv-scale"><span id="tmT0">0:00</span><span id="tmTsel"></span><span id="tmT1">0:00</span></div>
+
+        <div class="dlrow" style="margin-top:.9rem">
+          <button class="btn btn-ghost" id="tmPlay" onclick="trimPlay()">Ausschnitt vorhören</button>
+          <button class="btn btn-ghost" onclick="trimReset()">Ganzes Stück</button>
+        </div>
+
+        <div id="tmChapters" class="tm-chaps"></div>
+
+        <div class="grid2" style="margin-top:1rem">
+          <div><label for="tmStart">Start</label><input type="text" id="tmStart" class="mono" value="0:00.0" oninput="trimFromFields()"></div>
+          <div><label for="tmEnd">Ende</label><input type="text" id="tmEnd" class="mono" value="0:00.0" oninput="trimFromFields()"></div>
+        </div>
+
+        <div class="opts" style="margin-top:.2rem">
+          <div class="field"><label for="tmFmt">Format</label>
+            <select id="tmFmt"><option value="mp3">MP3</option><option value="m4a">M4A (AAC)</option><option value="wav">WAV (verlustfrei)</option></select></div>
+          <div class="field" id="tmBrField"><label for="tmBitrate">Bitrate</label>
+            <select id="tmBitrate">
+              <option value="320">320 kbit/s</option><option value="256">256 kbit/s</option>
+              <option value="192" selected>192 kbit/s</option><option value="160">160 kbit/s</option>
+              <option value="128">128 kbit/s</option><option value="96">96 kbit/s</option>
+            </select></div>
+          <div class="field"><label for="tmFade">Ein-/Ausblenden</label>
+            <select id="tmFade">
+              <option value="0">aus</option><option value="0.05">sehr kurz (50 ms)</option>
+              <option value="0.25" selected>kurz (0,25 s)</option><option value="1">1 Sekunde</option><option value="2">2 Sekunden</option>
+            </select></div>
+        </div>
+        <p class="hintsm">Ein harter Schnitt mitten in einer Welle knackt hörbar. Die kurze Blende entfernt das, ohne Inhalt zu fressen.</p>
+
+        <button class="btn btn-primary" id="tmCut" onclick="trimCut()" style="margin-top:1rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7.5L20 18M8 16.5L20 6"/></svg>Schneiden &amp; speichern</button>
+        <div class="result" id="tmCutResult"></div>
+      </div>
+    </section>
+
+    <!-- ── LIVESTREAM ── -->
+    <section id="live" class="view">
+      <div class="page-head"><div class="eyebrow">Live</div><h1>Livestream</h1><p>Livestreams laufen lokal im Terminal — zu groß fürs Tool. Befehl bauen, kopieren, ausführen. Stoppen mit <b>Ctrl + C</b>.</p></div>
+      <details class="cookie" style="margin-bottom:1.1rem">
+        <summary><svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2l2.4 4.8L20 8l-4 4 1 6-5-3-5 3 1-6-4-4 5.6-1.2z"/></svg>Setup — yt-dlp &amp; ffmpeg installieren (einmalig)<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="cbody">
+          <p>Einmal im Terminal ausführen:</p>
+          <div class="codeblock"><code id="setupCmd"># Homebrew (falls nicht vorhanden): https://brew.sh
+brew install ffmpeg
+python3 -m pip install -U --pre "yt-dlp[default]" curl_cffi</code></div>
+          <button class="btn btn-ghost" style="margin-top:.6rem" onclick="copyEl('setupCmd',this)">Kopieren</button>
+        </div>
+      </details>
+      <div class="card">
+        <label for="lsUrl">Livestream-URL (YouTube)</label>
+        <input type="url" id="lsUrl" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…" oninput="genLive()">
+        <div class="grid2" style="margin-top:1rem">
+          <div><label for="lsMode">Was willst du?</label>
+            <select id="lsMode" onchange="genLive()"><option value="now">Live ab jetzt mitschneiden</option><option value="start">Ab Stream-Start (ganzer DVR-Puffer)</option><option value="section">Abschnitt aus fertigem VOD</option><option value="merge">Abgebrochene Parts mergen</option><option value="scan">Snippet-Scan (Position finden)</option></select></div>
+          <div><label for="lsQual">Qualität</label>
+            <select id="lsQual" onchange="genLive()"><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option><option value="audio">Nur Audio</option></select></div>
+          <div><label for="lsName">Dateiname</label><input type="text" id="lsName" value="livestream" oninput="genLive()"></div>
+          <div><label for="lsPath">Zielordner</label><input type="text" id="lsPath" value="~/Downloads" oninput="genLive()"></div>
+        </div>
+        <div class="grid2" id="lsSection" style="margin-top:.8rem;display:none">
+          <div><label for="lsStart">Start (HH:MM:SS)</label><input type="text" id="lsStart" value="00:00:00" oninput="genLive()"></div>
+          <div><label for="lsEnd">Ende (HH:MM:SS)</label><input type="text" id="lsEnd" value="00:05:00" oninput="genLive()"></div>
+        </div>
+        <div class="ls-warn" id="lsWarn"></div>
+      </div>
+      <div class="card"><div class="step-head"><span class="step-badge">Terminal</span><span class="step-title" id="lsTitle">Befehl</span></div><div id="lsSteps" style="display:flex;flex-direction:column;gap:1rem"></div></div>
+    </section>
+
+    {% if is_admin %}
+    <!-- ── ADMIN ── -->
+    <section id="admin" class="view">
+      <div class="page-head"><div class="eyebrow">Verwaltung</div><h1>Admin</h1><p>Nutzer &amp; Aktivität. Blocken/Löschen per Username oder IP.</p></div>
+      <div id="adminBody"><div class="card"><div class="state state-loading" aria-busy="true"><span class="skel"></span><span class="skel"></span><span class="skel"></span><span class="sr">Wird geladen…</span></div></div></div>
+    </section>
+    {% endif %}
+
+    {% if is_local %}
+    <!-- ── VERLAUF (nur Mac-App) ── -->
+    <section id="history" class="view">
+      <div class="page-head">
+        <div class="eyebrow">Nur auf diesem Mac</div>
+        <h1>Verlauf</h1>
+        <p>Was du auf diesem Mac geholt hast. Bleibt hier, verlässt den Rechner nie.</p>
+      </div>
+      <div class="card">
+        <div class="dlrow" style="margin-top:0;align-items:center">
+          <label class="check"><input type="checkbox" id="hiPrivate" onchange="setPrivate(this.checked)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>Privater Modus — nichts notieren</label>
+          <span style="flex:1"></span>
+          <button class="btn btn-ghost btn-mini" onclick="checkNewEpisodes(this)">Neue Folgen prüfen</button>
+          <button class="btn btn-ghost btn-mini" onclick="clearHistory()">Alles löschen</button>
+        </div>
+        <div id="hiNew" style="margin-top:.9rem"></div>
+        <div id="hiList" style="margin-top:.9rem"><div class="state state-loading" aria-busy="true"><span class="skel"></span><span class="skel"></span><span class="skel"></span><span class="sr">Wird geladen…</span></div></div>
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- ── KONTO ── -->
+    <section id="settings" class="view">
+      <div class="page-head">
+        <div class="eyebrow">Einstellungen</div>
+        <h1>{% if is_local %}System{% else %}Konto{% endif %}</h1>
+        <p>{% if is_local %}Was installiert ist, und der MCP-Zugang für KI-Assistenten.{% else %}MCP-Zugang für KI-Assistenten, Bookmarklet, Status.{% endif %}</p>
+      </div>
+
+      <div class="card">
+        <div class="step-head"><span class="step-badge">Bausteine</span><span class="step-title">Was installiert ist</span></div>
+        <p class="metaline" style="margin-bottom:1rem">Diese Bausteine entscheiden, ob Downloads und Transkripte funktionieren. Fehlt einer, sieht das Problem nach außen meist nach etwas anderem aus.</p>
+        <div id="compBox"><div class="state state-loading" aria-busy="true"><span class="skel"></span><span class="skel"></span><span class="skel"></span><span class="sr">Wird geladen…</span></div></div>
+        <div id="updBox" style="margin-top:1rem"></div>
+      </div>
+
+      {% if is_desktop %}
+      <!-- Medien: opt-in for the extractor and the two switches, each with
+           its own acknowledgement. Only in the Mac app; a server keeps its
+           operator's environment variables. -->
+      <div class="card" id="mediaCard">
+        <div class="step-head"><span class="step-badge">Medien</span><span class="step-title">Medien-Download</span></div>
+        <p class="metaline" style="margin-bottom:.8rem">Fundus selbst lädt keine Medien. Auf Wunsch installiert es das Open-Source-Werkzeug yt-dlp aus dem offiziellen Paketverzeichnis PyPI. Für die Nutzung bist du selbst verantwortlich.</p>
+        <p class="metaline" style="margin-bottom:.8rem">Transkripte (Untertitel) von YouTube funktionieren immer, auch ohne yt-dlp.</p>
+        <p class="metaline" id="mediaStatus" aria-live="polite" style="margin-bottom:.8rem"></p>
+        <label class="check"><input type="checkbox" id="mediaConsentSys"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>Fundus lädt selbst keine Videos. Wenn du yt-dlp installierst, kommt es direkt aus dem offiziellen Paketverzeichnis (PyPI) und läuft unter deiner Verantwortung. Lade nur Inhalte, die du vervielfältigen darfst: eigene, frei lizenzierte oder mit Erlaubnis. In Deutschland ist das Umgehen technischer Schutzmaßnahmen verboten (§ 95a UrhG); nach OLG Hamburg (5 U 54/23) betrifft das auch das Herunterladen von YouTube-Videos.</label>
+        <div class="dlrow" style="margin:.8rem 0 1.2rem"><button class="btn btn-mini" id="mediaInstBtn" onclick="installExtractor('mediaConsentSys',this)">yt-dlp installieren</button></div>
+        <label class="check"><input type="checkbox" id="optYt" onchange="setMediaOpt('youtube_video',this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>YouTube-Videos laden</label>
+        <p class="hintsm" style="margin:.2rem 0 1rem">Nur für Videos, die du vervielfältigen darfst. Nach OLG Hamburg (5 U 54/23) kann das Herunterladen von YouTube-Videos in Deutschland unzulässig sein. Braucht yt-dlp und deine Einwilligung.</p>
+        <label class="check"><input type="checkbox" id="optTools" onchange="setMediaOpt('media_tools',this)"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>Download-Werkzeuge für KI-Assistenten</label>
+        <p class="hintsm" style="margin:.2rem 0 0">Dein KI-Assistent kann dann Download-Skripte erzeugen (get_download_script, get_livestream_script). Was damit geladen wird, verantwortest du.</p>
+      </div>
+      {% endif %}
+
+      <!-- Das Protokoll lag bisher nur im Admin-Bereich, und der ist im
+           lokalen Modus ausgeblendet — der Desktop-Nutzer sah seine eigenen
+           Fehler nie, obwohl genau dort die interessanten auftreten. -->
+      <div class="card">
+        <div class="step-head"><span class="step-badge">Diagnose</span><span class="step-title">Fehlerprotokoll</span></div>
+        <p class="metaline" style="margin-bottom:1rem">Was zuletzt schiefging — mit Zeitpunkt und Quelle. Nützlich, wenn ein Download ohne erkennbaren Grund scheitert.</p>
+        <div id="errBox"><div class="state state-loading" aria-busy="true"><span class="skel"></span><span class="skel"></span><span class="skel"></span><span class="sr">Wird geladen…</span></div></div>
+        <div class="dlrow" style="margin-top:1rem">
+          <button class="btn btn-ghost btn-mini" onclick="loadErrors()">Aktualisieren</button>
+          <button class="btn btn-ghost btn-mini" id="errClear" onclick="clearErrors(this)">Protokoll löschen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="step-head"><span class="step-badge">Assistenten</span><span class="step-title">KI-Assistenten anbinden (MCP)</span></div>
+        <p class="metaline" style="margin-bottom:1rem">Funktioniert mit Claude, Codex und offenen Modellen über LM Studio, Open WebUI, Goose und andere. Der Token ist <b>dein persönlicher</b> Schlüssel; beim Kopieren ist er immer vollständig drin.</p>
+        <div class="kv"><div class="k">Endpoint</div><div class="tokenbox"><span id="mcpUrl">…</span><button class="btn btn-mini" onclick="copyText(document.getElementById('mcpUrl').textContent,this)">Kopieren</button></div></div>
+        <div class="kv"><div class="k">Bearer-Token (geheim)</div><div class="tokenbox"><span id="mcpTok" aria-live="polite">…</span><span class="tok-actions"><button class="btn btn-mini" id="mcpTokShow" aria-pressed="false" onclick="toggleToken()">Anzeigen</button><button class="btn btn-mini" onclick="copyText(MCP_TOKEN,this)">Kopieren</button></span></div></div>
+        <div class="kv"><div class="k"><label for="mcpClient">Assistent</label></div>
+          <select id="mcpClient" onchange="paintToken()" style="margin-bottom:.5rem">
+            <option value="claude-code">Claude Code</option>
+            <option value="codex">Codex (CLI, App, IDE)</option>
+            <option value="claude-desktop">Claude Desktop</option>
+            <option value="json">LM Studio, Cline, AnythingLLM, Cursor (mcpServers-JSON)</option>
+            <option value="goose">Goose</option>
+            <option value="openwebui">Open WebUI</option>
+            <option value="other">Andere (Jan, Msty, oterm, Continue)</option>
+          </select>
+          <p class="hintsm" id="mcpHint" style="margin:0 0 .3rem"></p>
+          <pre class="cfg" id="mcpCfg">…</pre>
+          <button class="btn btn-mini" style="margin-top:.5rem" onclick="copyText(mcpConfig(true),this)">Konfiguration kopieren</button></div>
+        <div class="kv"><div class="k">Tools</div><p class="metaline">get_transcript · list_transcript_languages · get_caption · get_metadata · resolve_podcast · get_podcast_transcript · get_podcast_shownotes · get_podcast_package · get_whisper_script · search_podcast_transcripts · get_podcast_package_status · read_podcast_package_file{% if media_tools %} · get_download_script · get_livestream_script{% endif %}</p></div>
+      </div>
+      <div class="card">
+        <div class="step-head"><span class="step-badge">Lesezeichen</span><span class="step-title">Bookmarklet</span></div>
+        {# Über t() statt über die Textknoten-Übersetzung: der Name steckt mitten
+           im Satz, und gerendert steht dort nicht mehr der Schlüssel. #}
+        <p class="metaline" style="margin-bottom:.9rem">{{ t("In die Lesezeichen-Leiste ziehen. Auf einer YouTube-, Podcast- oder Threads-Seite anklicken → öffnet {app} mit der URL vorausgefüllt.")|replace("{app}", app_name) }}</p>
+        <a id="bmk" class="btn btn-mini" style="text-decoration:none" href="#" onclick="return false">{{ t("An {app} schicken")|replace("{app}", app_name) }}</a>
+      </div>
+      <div class="card">
+        <div class="step-head"><span class="step-badge">Privat</span><span class="step-title">Datenschutz &amp; Speicher</span></div>
+        {% if is_local %}
+        <p class="metaline">Alles bleibt auf diesem Mac. Was du geholt hast, steht unter <b>Verlauf</b> — dort löschst du einzelne Einträge oder alles, und im privaten Modus wird gar nichts notiert. Geladene Dateien werden nach <span id="ret2">…</span> gelöscht.</p>
+        {% else %}
+        {# |safe vor |replace: Markup.replace escapt den eingesetzten Namen. #}
+        <p class="metaline">{{ t('Keine Historie: {app} merkt sich <b>nicht</b>, was du lädst. Dateien liegen nur kurz auf dem Server und werden automatisch gelöscht (<span id="ret2">…</span>). Hinterlegte Cookies liegen bei deinem Konto in der Datenbank dieser Instanz, bis du sie löschst — am besten die eines Zweitkontos.')|safe|replace("{app}", app_name) }}</p>
+        {% endif %}
+        <div class="ver" id="verM" style="margin-top:.8rem"><span class="dot"></span>yt-dlp lädt…</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mobile Bottom-Nav (wird per JS auch in die Sidebar gespiegelt) -->
+  <nav class="nav nav-mobile" id="navMobile" aria-label="Hauptnavigation"></nav>
+</div>
+
+<!-- Export-Dialog -->
+<div class="modal" id="dlModal" onclick="if(event.target===this)closeExport()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <h3 id="dlTitle">Transkript speichern</h3>
+    <p class="sub">Wähle Format, Dateiname und ob Zeitstempel mitkommen.</p>
+
+    <div class="modal-row" style="display:block;padding-top:0">
+      <label for="dlName">Dateiname</label>
+      <input type="text" id="dlName" value="[title]" spellcheck="false" style="margin-top:.4rem;margin-bottom:0">
+      <p class="hintsm">Platzhalter: <code>[title]</code> <code>[id]</code> <code>[uploader]</code> <code>[publishDate]</code> <code>[currentDate]</code></p>
+      <p class="hintsm" id="dlPreview" style="color:var(--blue-dark)"></p>
+    </div>
+
+    <div class="modal-row">
+      <label for="dlFmt">Format</label>
+      <select id="dlFmt" onchange="updateExportPreview()">
+        <option value="md" selected>.md — Markdown</option>
+        <option value="txt">.txt — Text</option>
+        <option value="srt">.srt — Untertitel</option>
+        <option value="vtt">.vtt — Web-Untertitel</option>
+        <option value="json">.json — mit Segmenten</option>
+      </select>
+    </div>
+
+    <div class="modal-row" id="dlTimingRow">
+      <label for="dlTiming">Zeitstempel einbeziehen</label>
+      <span class="sw"><input type="checkbox" id="dlTiming" onchange="updateExportPreview()"><span class="kn"></span></span>
+    </div>
+
+    <div class="dlrow" style="margin-top:1.1rem">
+      <button class="btn btn-primary" style="flex:1" onclick="doExport()">Speichern</button>
+      <button class="btn btn-ghost" onclick="closeExport()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Translation for markup this script builds itself ──────────────────────
+  // The server translates the page it renders, but roughly half of this UI is
+  // assembled here at runtime and never passes through that. Those strings go
+  // through t() instead. Keys are the German source text, same as server-side.
+  //
+  // t("Noch {n} übrig", {n: 3}) — placeholders are named, so a translation may
+  // reorder them. An unknown key returns itself: a German label in an English
+  // UI is a visible bug, an empty string is an invisible one.
+  const I18N = {{ i18n_json|safe }};
+  const LANG = "{{ lang }}";
+  const JS_LOCALE = "{{ js_locale }}";
+  function t(key, vars){
+    let s = I18N[key] !== undefined ? I18N[key] : key;
+    if(vars) for(const k in vars) s = s.split('{'+k+'}').join(vars[k]);
+    return s;
+  }
+  // Plural without a full CLDR table: German and English agree that 1 is
+  // singular and everything else is not, which covers both shipped languages.
+  const plural=(n,one,many)=>t(n===1?one:many,{n:n});
+  const num=n=>Number(n).toLocaleString(JS_LOCALE);
+
+  const $=id=>document.getElementById(id);
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  // Escapes quotes too — values land inside HTML attributes (onclick=…) as well.
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  // Loading / empty / error, one shape each. `retry` names a global function.
+  const ST_ICON={empty:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 13h4l1.5 2h5L16 13h4"/></svg>',
+    error:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>'};
+  function stateBox(kind,title,hint,retry){
+    if(kind==='loading') return '<div class="state state-loading" aria-busy="true"><span class="skel"></span><span class="skel"></span><span class="skel"></span><span class="sr">'+esc(t('Wird geladen…'))+'</span></div>';
+    return `<div class="state state-${kind}" role="${kind==='error'?'alert':'status'}">${ST_ICON[kind]||''}<div><div class="st-t">${esc(title)}</div>`
+      +(hint?`<div class="st-h">${esc(hint)}</div>`:'')
+      +(retry?`<button class="btn btn-ghost btn-mini" onclick="${retry}()">${esc(t('Erneut versuchen'))}</button>`:'')
+      +'</div></div>';
+  }
+  const IS_ADMIN={{ 'true' if is_admin else 'false' }};
+  const IS_LOCAL={{ 'true' if is_local else 'false' }};
+  const ICON={done:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>',error:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',run:'<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9" stroke-linecap="round"/></svg>',wait:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 1.5"/></svg>'};
+  const dlIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v11m0 0l-3.5-3.5M12 14l3.5-3.5"/><path d="M5 19h14"/></svg>';
+
+  // ── Navigation (eine Quelle, zwei Renderziele: Bottom-Bar + Sidebar) ──
+  // Order is a statement: Fundus leads with transcripts and podcasts. The
+  // former start page "Laden" is now "Dateien", third in line, and opens in
+  // text mode. Live only appears when the server reports an extractor — it
+  // is a yt-dlp front end and nothing else. Until that answer arrives
+  // (HAS_EXT === null) it stays visible rather than flickering in later.
+  let HAS_EXT=null, CUR='download';
+  const NAV=[
+    {id:'download',label:'Laden',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>'},
+    {id:'transcript',label:'Transkript',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 10h16M4 14h10M4 18h13"/></svg>'},
+    {id:'podcast',label:'Podcast',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'},
+    {id:'trim',label:'Schnitt',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8v8M8 5v14M12 9v6M16 4v16M20 8v8"/></svg>'},
+    {id:'live',label:'Live',when:()=>HAS_EXT!==false,icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M5.5 5.5a9 9 0 0 0 0 13M18.5 5.5a9 9 0 0 1 0 13"/></svg>'},
+    ...(IS_LOCAL?[{id:'history',sep:true,label:'Verlauf',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4M12 7v5l3 2"/></svg>'}]:[]),
+    ...(IS_ADMIN?[{id:'admin',sep:!IS_LOCAL,label:'Admin',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg>'}]:[]),
+    // Desktop: there is no account to manage, but the MCP endpoint and the
+    // component versions still belong somewhere.
+    {id:'settings',sep:!IS_LOCAL&&!IS_ADMIN,label:IS_LOCAL?'System':'Konto',icon:IS_LOCAL
+      ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="5" width="17" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>'
+      :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>'},
+  ];
+  function renderNav(){
+    const html=NAV.filter(n=>!n.when||n.when()).map(n=>`<button data-view="${n.id}"${n.sep?' class="nav-sep"':''} onclick="showView('${n.id}')">${n.icon}<span>${t(n.label)}</span></button>`).join('');
+    $('navMobile').innerHTML=html;
+    const d=document.querySelector('.nav-desktop'); if(d)d.innerHTML=html;
+    markNav(CUR);
+  }
+  function markNav(v){document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));}
+  function showView(v){
+    CUR=v;
+    document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id===v));
+    markNav(v);
+    if(v==='live') genLive();
+    if(v==='admin') loadAdmin();
+    if(v==='settings') loadSettings();
+    if(v==='history') loadHistory();
+    // A canvas in a hidden view measures 0 wide, so anything drawn while the
+    // tab was away is the wrong size. Redraw on return.
+    if(v==='trim' && TM.id){ tmDraw(); tmSync(); }
+    window.scrollTo({top:0});
+  }
+  async function logout(){ await fetch('/api/logout',{method:'POST'}); location.href='/login'; }
+
+
+  // ── Verlauf (nur Mac-App) ──
+  const HI_KIND={media:'Datei',audio:'Audio',text:'Text',pack:'AI-Pack',merge:'Merge',transcript:'Transkript',podcast:'Podcast'};
+  async function loadHistory(){
+    const box=$('hiList'); if(!box)return;
+    try{
+      const d=await(await fetch('/api/history')).json();
+      $('hiPrivate').checked=!!d.private;
+      if(!d.items.length){
+        box.innerHTML=d.private
+          ? stateBox('empty',t('Privater Modus ist an — es wird nichts notiert.'),t('Schalte ihn aus, damit der Verlauf wieder mitschreibt.'))
+          : stateBox('empty',t('Noch nichts im Verlauf.'),t('Was du holst, erscheint hier, mit Knopf zum erneuten Holen. Es verlässt diesen Mac nicht.'));
+        return;
+      }
+      box.innerHTML=d.items.map(e=>{
+        const when=new Date(e.created_at*1000).toLocaleString([], {dateStyle:'short',timeStyle:'short'});
+        const title=e.title||e.url;
+        return `<div class="kv" style="align-items:flex-start;gap:.8rem">`
+          +`<span class="k" style="white-space:nowrap">${esc(when)}</span>`
+          +`<div style="flex:1;min-width:0"><div style="overflow:hidden;text-overflow:ellipsis">${esc(title)}</div>`
+          +`<div class="metaline">${esc(t(HI_KIND[e.kind]||e.kind))}${e.show?' · '+esc(e.show):''} · <span style="word-break:break-all">${esc(e.url)}</span></div></div>`
+          +`<button class="btn btn-ghost btn-mini" data-hi-open="${e.id}">${esc(t('Wieder holen'))}</button>`
+          +`<button class="btn btn-ghost btn-mini" data-hi-del="${e.id}" aria-label="${esc(t('Eintrag löschen'))}">✕</button></div>`;
+      }).join('');
+      box.querySelectorAll('[data-hi-del]').forEach(b=>b.onclick=async()=>{
+        await fetch('/api/history/'+b.dataset.hiDel,{method:'DELETE'});loadHistory();});
+      box.querySelectorAll('[data-hi-open]').forEach(b=>b.onclick=()=>{
+        const e=d.items.find(x=>String(x.id)===b.dataset.hiOpen); if(e)reopen(e);});
+    }catch(err){box.innerHTML=stateBox('error',t('Verlauf konnte nicht geladen werden.'),t('Die lokale Datenbank hat nicht geantwortet.'),'loadHistory');}
+  }
+  function reopen(e){
+    if(e.kind==='podcast'){
+      $('pcUrls').value=e.feed&&e.guid
+        ?JSON.stringify({format:'fundus-podcast/1',episodes:[{feed:e.feed,guid:e.guid,title:e.title,show:e.show}]},null,2)
+        :e.url;
+      showView('podcast');
+    }else if(e.kind==='transcript'){
+      $('trUrl').value=e.url;showView('transcript');
+    }else{
+      urlsTA.value=e.url;updateCount();showView('download');
+    }
+  }
+  async function setPrivate(on){
+    const f=new FormData();f.append('on',on);
+    await fetch('/api/history/private',{method:'POST',body:f});loadHistory();
+  }
+  async function clearHistory(){
+    if(!confirm(t('Den ganzen Verlauf löschen?')))return;
+    await fetch('/api/history',{method:'DELETE'});loadHistory();
+  }
+  async function checkNewEpisodes(btn){
+    const box=$('hiNew'); btn.disabled=true; box.innerHTML='<p class="metaline">'+esc(t('Feeds werden gelesen…'))+'</p>';
+    try{
+      const d=await(await fetch('/api/history/new-episodes')).json();
+      if(!d.feeds.length){box.innerHTML='<p class="metaline">'+esc(t('Im Verlauf ist noch kein Podcast.'))+'</p>';return;}
+      const fresh=d.feeds.flatMap(f=>f.episodes.map(e=>({...e,feed:f.feed,show:f.show})));
+      const lines=d.feeds.map(f=>`<div class="metaline">${esc(f.show||f.feed)}: ${f.error?esc(t(f.error)):(f.episodes.length?t('{n} neue Folge(n)',{n:f.episodes.length}):t('nichts Neues'))}</div>`).join('');
+      box.innerHTML=lines+(fresh.length?`<button class="btn btn-mini" style="margin-top:.6rem" id="hiTake">${esc(t('Alle {n} ins Podcast-Feld übernehmen',{n:fresh.length}))}</button>`:'');
+      if(fresh.length) $('hiTake').onclick=()=>{
+        $('pcUrls').value=JSON.stringify({format:'fundus-podcast/1',
+          episodes:fresh.map(e=>({feed:e.feed,guid:e.guid,title:e.title,show:e.show}))},null,2);
+        showView('podcast');
+      };
+    }catch(err){box.innerHTML='<p class="metaline">'+esc(t('Feeds konnten nicht gelesen werden.'))+'</p>';}
+    finally{btn.disabled=false;}
+  }
+
+  // ── URLs ──
+  const urlsTA=$('urls');
+  const parseUrls=()=>urlsTA.value.split('\n').map(l=>l.trim()).filter(l=>/^https?:\/\//i.test(l));
+  urlsTA.addEventListener('input',updateCount);
+
+  // Mac-App: Links, die anderswo kopiert wurden (Menü Bearbeiten → „Links aus
+  // der Zwischenablage übernehmen"). Nur anhängen, nie starten — was geladen
+  // wird, entscheidet weiter die Person vor dem Bildschirm.
+  // Nichts wird automatisch übernommen oder abgerufen: eine kopierte Adresse
+  // kann ein Passwort-Reset- oder Einmal-Link sein, und schon die Vorschau
+  // würde ihn verbrauchen. Erst ein Klick hängt die Links an.
+  let clipPending=[];
+  window.fundusClipboard=function(list){
+    if(!IS_LOCAL||!Array.isArray(list))return;
+    const have=new Set(parseUrls().concat(clipPending));
+    const add=list.filter(u=>typeof u==='string'&&/^https?:\/\//i.test(u)&&!have.has(u));
+    if(!add.length)return;
+    clipPending=clipPending.concat(add).slice(-20);
+    const box=$('clipOffer'); if(!box)return;
+    box.innerHTML=`<span>${esc(t('{n} Link(s) aus der Zwischenablage',{n:clipPending.length}))}: <b>${esc(clipPending[clipPending.length-1])}</b></span>`
+      +`<button class="btn btn-mini" id="clipTake">${esc(t('Übernehmen'))}</button>`
+      +`<button class="btn btn-ghost btn-mini" id="clipDrop">${esc(t('Verwerfen'))}</button>`;
+    box.style.display='flex';
+    $('clipTake').onclick=()=>{
+      urlsTA.value=(urlsTA.value.trim()?urlsTA.value.replace(/\s*$/,'\n'):'')+clipPending.join('\n');
+      clipPending=[];box.style.display='none';updateCount();renderPreview();showView('download');
+    };
+    $('clipDrop').onclick=()=>{clipPending=[];box.style.display='none';};
+  };
+
+  // Vorschau: Titel und Urheber der eingefügten Links, bevor etwas geladen
+  // wird. Höchstens acht, gebremst, und jeder Link nur einmal angefragt.
+  const PV={};let pvTimer=null;const PV_MAX=8;
+  urlsTA.addEventListener('input',()=>{clearTimeout(pvTimer);pvTimer=setTimeout(renderPreview,600);});
+  async function renderPreview(){
+    const box=$('urlPreview'); if(!box)return;
+    const urls=parseUrls().slice(0,PV_MAX);
+    const paint=()=>{box.innerHTML=urls.map(u=>{
+      const d=PV[u];
+      if(!d||d==='…')return `<li><span class="pv-t muted">${esc(t('Wird gelesen…'))}</span><span class="pv-u">${esc(u)}</span></li>`;
+      return `<li><span class="pv-t">${esc(d.title||t('Ohne Titel'))}</span><span class="pv-u">${esc([d.site,d.author].filter(Boolean).join(' · ')||u)}</span></li>`;
+    }).join('')+(parseUrls().length>PV_MAX?`<li class="pv-more">${esc(t('… und {n} weitere',{n:parseUrls().length-PV_MAX}))}</li>`:'');};
+    paint();
+    for(const u of urls){
+      if(PV[u])continue;
+      PV[u]='…';
+      fetch('/api/preview?url='+encodeURIComponent(u)).then(r=>r.ok?r.json():{}).then(d=>{PV[u]=d||{};paint();}).catch(()=>{PV[u]={};paint();});
+    }
+  }
+
+  const CHUNK=25;                      // sinnvolle Portionsgröße pro Batch
+  const SEC_PER_URL=12;                // grobe Schätzung für die Laufzeit
+
+  function fmtDur(s){
+    s=Math.max(0,Math.round(s));
+    if(s<60)return t('{n} Sek.',{n:s});
+    const m=Math.round(s/60);
+    return m<60 ? t('{n} Min.',{n:m}) : t('{h} Std. {m} Min.',{h:Math.floor(m/60),m:m%60});
+  }
+
+  function updateCount(){
+    const n=parseUrls().length;
+    $('count').textContent=n;
+    const adv=$('urlAdvice');
+    if(!adv)return;
+    if(n<=CHUNK){adv.innerHTML='';return;}
+
+    // Downloads laufen nacheinander — bei vielen URLs offen sagen, was das
+    // bedeutet, und das Aufteilen anbieten statt es nur zu empfehlen.
+    const parts=Math.ceil(n/CHUNK);
+    adv.innerHTML=`<div class="hintline" style="margin-top:.6rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+      <span>${t('<b>{n} URLs</b> — nacheinander grob <b>{dur}</b>. In {parts} Portionen à {chunk} siehst du früher Ergebnisse.',{n:n,dur:fmtDur(n*SEC_PER_URL),parts:parts,chunk:CHUNK})}
+      <button class="lnk" style="color:var(--blue-dark);font-size:.78rem" onclick="splitBatch()">${t('Erste {n} übernehmen',{n:CHUNK})}</button></span></div>`;
+  }
+
+  // Nimmt die ersten CHUNK URLs, der Rest wartet für den nächsten Durchgang.
+  let splitRest=[];
+  function splitBatch(){
+    const urls=parseUrls();
+    if(urls.length<=CHUNK)return;
+    splitRest=urls.slice(CHUNK);
+    urlsTA.value=urls.slice(0,CHUNK).join('\n');
+    updateCount();
+    $('urlAdvice').innerHTML=`<div class="hintline" style="margin-top:.6rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+      <span>${t('{n} URLs übernommen — <b>{rest}</b> warten noch.',{n:CHUNK,rest:splitRest.length})}
+      <button class="lnk" style="color:var(--blue-dark);font-size:.78rem" onclick="restoreRest()">${t('Rest einsetzen')}</button></span></div>`;
+  }
+  function restoreRest(){
+    if(!splitRest.length)return;
+    urlsTA.value=splitRest.join('\n');
+    splitRest=[];
+    updateCount();
+  }
+
+  // ── Modi ──
+  const MODES={
+    video:{label:'Herunterladen'},
+    mp3:{label:'MP3 erzeugen'},
+    merge:{label:'Laden & Mergen'},
+    pack:{label:'Pack bauen'},
+    text:{label:'Text holen'},
+  };
+  // Files by default; the markup above is written for this mode, and the
+  // init call to setMode() at the end keeps the two from drifting apart.
+  let mode='video', modeForced=false;
+  function setMode(m){
+    const b=document.querySelector(`.mode[data-mode="${m}"]`);
+    if(b&&b.disabled)return;
+    mode=m;
+    document.querySelectorAll('.mode').forEach(el=>el.setAttribute('aria-pressed',el.dataset.mode===m));
+    $('mergeOpts').classList.toggle('show',m==='merge');
+    $('packOpts').classList.toggle('show',m==='pack');
+    $('dlOpts').classList.toggle('show',m!=='text');
+    $('qualField').style.display=(m==='mp3')?'none':'flex';
+    $('afmtField').style.display=(m==='mp3')?'flex':'none';
+    // Nur dort, wo die Auswahl etwas bewirkt. In MP3 war sie sichtbar und
+    // wirkungslos: wer dort „Nur Fotos" wählte, bekam Bilder statt Tonspur,
+    // ohne Hinweis.
+    $('mediaField').style.display=(m==='video'||m==='pack')?'flex':'none';
+    $('allPartsWrap').style.display=(m==='merge'||m==='text')?'none':'inline-flex';
+    $('runLabel').textContent=t(MODES[m].label);
+  }
+  // Without an extractor only "Nur Text" can work. Switch to it, grey out the
+  // rest, and let the note in #mediaGroup say why. If the extractor turns up
+  // later (update installed), give back the default — but only if it was this
+  // function that took it away, not a choice the person made.
+  function applyExtractor(has){
+    const mg=$('mediaGroup'); if(mg) mg.classList.toggle('noext',!has);
+    document.querySelectorAll('.mode').forEach(el=>{
+      if(el.dataset.mode==='text')return;
+      el.disabled=!has;
+      el.setAttribute('aria-disabled',String(!has));
+    });
+    if(!has && mode!=='text'){ modeForced=true; setMode('text'); }
+    else if(has && modeForced){ modeForced=false; setMode('video'); }
+  }
+
+  // ── Media opt-in (Mac app only) ──
+  // Nothing is installed and nothing is switched on without a ticked box.
+  // On a server /api/media/* answers 404 and none of this is rendered.
+  const IS_DESKTOP={{ 'true' if is_desktop else 'false' }};
+  let MEDIA_RUNNING=false;
+  async function loadMedia(){
+    if(!IS_DESKTOP)return;
+    let d;
+    try{ const r=await fetch('/api/media/status'); if(!r.ok)return; d=await r.json(); }catch{return;}
+    const off=$('mediaOffCard'); if(off) off.style.display=d.extractor_installed?'none':'';
+    const inst=d.install||{};
+    const st=$('mediaStatus');
+    if(st){
+      let s=d.extractor_installed?t('yt-dlp ist installiert ({v}).',{v:d.extractor_version||'?'}):t('yt-dlp ist nicht installiert.');
+      if(d.consent_at) s+=' '+t('Einwilligung erteilt am {d}.',{d:d.consent_at.replace('T',' ')});
+      if(inst.status==='running') s+=' '+t('Installation läuft…');
+      else if(inst.status==='error') s+=' '+t('Installation fehlgeschlagen: {e}',{e:inst.detail||''});
+      st.textContent=s;
+    }
+    const yt=$('optYt'); if(yt){ yt.checked=!!d.youtube_video_enabled; yt.disabled=!(d.extractor_installed&&d.consent_at)&&!d.youtube_video_enabled; }
+    const tl=$('optTools'); if(tl) tl.checked=!!d.media_tools_enabled;
+    const b=$('mediaInstBtn'); if(b){ b.textContent=d.extractor_installed?t('yt-dlp aktualisieren'):t('yt-dlp installieren'); b.disabled=inst.status==='running'; }
+    if(inst.status==='running'){ MEDIA_RUNNING=true; setTimeout(loadMedia,3000); }
+    else if(MEDIA_RUNNING){ MEDIA_RUNNING=false; loadVersion(); }
+  }
+  async function installExtractor(boxId,btn){
+    const cb=$(boxId);
+    if(!cb||!cb.checked){ alert(t('Bitte zuerst den Hinweis lesen und das Kästchen ankreuzen.')); return; }
+    btn.disabled=true;
+    const f=new FormData(); f.append('consent','true');
+    try{
+      const r=await fetch('/api/media/install',{method:'POST',body:f});
+      if(!r.ok){ const e=await r.json().catch(()=>({})); alert(e.detail||t('Installation fehlgeschlagen.')); }
+      else { btn.textContent=t('Installation läuft…'); MEDIA_RUNNING=true; }
+    }catch{ alert(t('Installation fehlgeschlagen.')); }
+    loadMedia();
+  }
+  async function setMediaOpt(key,el){
+    const on=el.checked;
+    if(on){
+      const warn=key==='youtube_video'
+        ?t('YouTube-Videos laden einschalten? Lade nur Videos, die du vervielfältigen darfst. Nach OLG Hamburg (5 U 54/23) kann das Herunterladen von YouTube-Videos in Deutschland unzulässig sein. Die Verantwortung liegt bei dir.')
+        :t('Download-Werkzeuge für KI-Assistenten einschalten? Dein Assistent kann dann Download-Skripte erzeugen. Was damit geladen wird, verantwortest du.');
+      if(!confirm(warn)){ el.checked=false; return; }
+    }
+    const f=new FormData(); f.append(key,on?'true':'false'); if(on) f.append('consent','true');
+    try{
+      const r=await fetch('/api/media/settings',{method:'POST',body:f});
+      if(!r.ok){ const e=await r.json().catch(()=>({})); alert(e.detail||t('Das hat nicht geklappt.')); }
+    }catch{}
+    loadMedia();
+  }
+
+  // ── Cookies (getrennte Speicher pro Plattform) ──
+  // Die Werte werden nie zurückgeliefert — nur ob und wie viele Zeilen liegen.
+  function setCstate(id,info){
+    const e=$(id);if(!e)return;
+    const on=!!(info&&info.saved);
+    e.textContent=on?(info.lines?t('{n} Cookies',{n:info.lines}):t('gespeichert')):t('leer');
+    e.classList.toggle('on',on);
+  }
+  async function refreshCookies(){
+    try{const s=await(await fetch('/api/cookies')).json();
+      setCstate('cstate',s.instagram);setCstate('ytcstate',s.youtube);}catch{}
+  }
+  async function saveCookieKind(kind,taId,msgId,stateId){
+    const ta=$(taId),msg=$(msgId),v=ta.value.trim();
+    if(!v){msg.textContent='Feld ist leer.';return;}
+    const f=new FormData();f.append('cookies',v);f.append('kind',kind);
+    try{
+      const r=await fetch('/api/cookies',{method:'POST',body:f});
+      const d=await r.json();
+      if(!r.ok){msg.textContent=d.detail;return;}
+      setCstate(stateId,d);
+      ta.value='';                       // nicht im DOM liegen lassen
+      msg.textContent='Gespeichert.';setTimeout(()=>msg.textContent='',3000);
+    }catch(e){msg.textContent=e.message;}
+  }
+  async function clearCookieKind(kind,taId,msgId,stateId){
+    await fetch('/api/cookies?kind='+kind,{method:'DELETE'});
+    $(taId).value='';setCstate(stateId,{saved:false});
+    const msg=$(msgId);if(msg){msg.textContent='Gelöscht.';setTimeout(()=>msg.textContent='',3000);}
+  }
+  const saveCookies   =()=>saveCookieKind('instagram','cookies','cmsg','cstate');
+  const clearCookies  =()=>clearCookieKind('instagram','cookies','cmsg','cstate');
+  const saveYtCookies =()=>saveCookieKind('youtube','ytcookies','ytcmsg','ytcstate');
+  const clearYtCookies=()=>clearCookieKind('youtube','ytcookies','ytcmsg','ytcstate');
+
+  // ── Batch ──
+  async function startBatch(){
+    const urls=parseUrls();if(!urls.length){urlsTA.focus();return;}
+    const run=$('run'),jobs=$('jobs'),result=$('result');
+    run.disabled=true;result.className='result';jobs.innerHTML='';
+    jobs.classList.toggle('many',urls.length>12);   // lange Listen scrollbar halten
+    $('bstat').classList.remove('show');
+    const rows=urls.map((u,i)=>{const li=document.createElement('li');li.className='job pending';li.innerHTML=`<span class="ic">${ICON.wait}</span><div class="txt"><div class="t">${esc(u)}</div><div class="s" id="s${i}">${t('Wartend')}</div><div class="pbar"><span id="p${i}"></span></div></div>`;jobs.appendChild(li);return li;});
+    const f=new FormData();
+    f.append('urls',urls.join('\n'));
+    f.append('quality',$('quality').value);
+    f.append('audio_only',mode==='mp3');
+    f.append('all_parts',$('allParts').checked);
+    f.append('merge',mode==='merge');
+    f.append('merge_resolution',$('mres').value);
+    f.append('pack',mode==='pack');
+    f.append('include_transcripts',mode==='pack'&&$('withTr').checked);
+    f.append('text_only',mode==='text');
+    f.append('media',$('mediaSel')?$('mediaSel').value:'alle');
+    f.append('audio_format',mode==='mp3'?$('afmt').value:'mp3');
+    f.append('stills',mode==='pack'?$('stills').value:'off');
+    f.append('discard_video',mode==='pack'&&$('discardVid').checked);
+    const ck=$('cookies').value.trim();if(ck)f.append('cookies',ck);
+    let bid,jids;
+    try{
+      const resp=await fetch('/api/batch',{method:'POST',body:f});
+      const d=await resp.json().catch(()=>({}));
+      // Fehler des Servers (Limit, zu viele URLs) sichtbar machen, statt gegen
+      // eine undefinierte Batch-ID weiterzupollen — das sah aus wie „nichts passiert".
+      if(!resp.ok || (!d.batch_id && !d.use_local_script)){
+        run.disabled=false; jobs.innerHTML='';
+        result.className='result bad show';
+        result.innerHTML=`<div class="rl">${ICON.error} ${esc(d.detail||t('Start fehlgeschlagen (HTTP {s})',{s:resp.status}))}</div>`;
+        return;
+      }
+      if(d.use_local_script){
+        run.disabled=false; jobs.innerHTML='';
+        result.className='result info show';
+        result.innerHTML=`<div class="rl">${dlIcon} ${esc(d.reason)}</div>
+          <div class="codeblock" style="margin-top:.6rem"><code id="autoScript">${esc(d.script)}</code></div>
+          <div class="dlrow"><button class="btn btn-mini" onclick="copyEl('autoScript',this)">${t('Script kopieren')}</button></div>`;
+        return;
+      }
+      bid=d.batch_id;jids=d.job_ids;
+      if((d.duplicates||[]).length){
+        const n=d.duplicates.length;
+        result.className='result info show';
+        result.innerHTML=`<div class="rl">${ICON.done} ${esc(plural(n,'{n} doppelter Link übersprungen','{n} doppelte Links übersprungen'))}</div>
+          <p class="metaline">${d.duplicates.map(u=>esc(u)).join('<br>')}</p>`;
+      }
+    }
+    catch(e){result.className='result bad show';result.innerHTML=`<div class="rl">${ICON.error} ${esc(t('Start fehlgeschlagen'))}</div>`;run.disabled=false;return;}
+    let done=false;
+    while(!done){
+      await sleep(1500);let b;try{b=await(await fetch(`/api/batch/${bid}`)).json();}catch{continue;}
+      (b.jobs||[]).forEach((job,i)=>{if(!rows[i])return;const st=job.status||'pending';rows[i].className=`job ${st}`;rows[i].querySelector('.ic').innerHTML=ICON[st]||ICON.wait;rows[i].querySelector('.t').textContent=(job.meta&&job.meta.title)||job.filename||job.url;const s=$(`s${i}`),p=$(`p${i}`);if(st==='error')s.textContent=job.error||t('Fehler');else if(st==='done')s.textContent=t('Fertig');else if(st==='running'){const pr=job.progress||0;s.textContent=mode==='text'?t('Läuft…'):t('Läuft… {n}%',{n:pr});if(p)p.style.width=pr+'%';}else s.textContent=t('Wartend');if(st==='done'&&job.filename&&mode!=='text'&&!rows[i].querySelector('.btn')){const a=document.createElement('a');a.className='btn btn-mini';a.href=`/api/download-file/${jids[i]}`;a.innerHTML=dlIcon+'Datei';rows[i].appendChild(a);}});
+      renderOverview(b);
+      if(b.status==='merging'){result.className='result info show';result.innerHTML=`<div class="rl">${ICON.run} ${esc(t('Videos werden gemergt…'))}</div>`;}
+      if(['done','error','merge_error'].includes(b.status)){done=true;$('bstat').classList.remove('show');renderResult(b,bid);}
+    }
+    run.disabled=false;
+  }
+  // Sammelanzeige — bei 100 URLs sagen die Einzelzeilen allein nichts mehr aus.
+  function renderOverview(b){
+    const o=b.overview; const box=$('bstat');
+    if(!o||!box)return;
+    box.classList.add('show');
+    $('bsCount').textContent=`${o.finished} / ${o.total}`;
+    const parts=[`${o.percent}%`];
+    if(o.failed)parts.push(`${o.failed} Fehler`);
+    if(o.elapsed)parts.push(`${fmtDur(o.elapsed)} gelaufen`);
+    if(o.eta!==null&&o.eta!==undefined&&o.finished<o.total)parts.push(`noch ca. ${fmtDur(o.eta)}`);
+    $('bsMeta').textContent=parts.join(' · ');
+    $('bsBar').style.width=o.percent+'%';
+    $('bsNow').textContent=o.current?t('Aktuell: {cur}',{cur:o.current})+(o.current_progress?` (${o.current_progress}%)`:''):'';
+
+    // Hänger sichtbar machen: wenn sich lange nichts rührt, sagen statt schweigen.
+    // wt, nicht t: ein lokales t verdeckte die Übersetzungsfunktion.
+    const w=$('bsWarn'), wt=$('bsWarnTxt');
+    if(o.stalled_for>120){
+      wt.textContent=`Seit ${fmtDur(o.stalled_for)} keine Bewegung. Ein Download hängt vermutlich — im Admin lässt sich alles abbrechen.`;
+      w.classList.add('show');
+    } else { w.classList.remove('show'); }
+  }
+
+  function renderResult(b,bid){
+    const result=$('result');
+    if(b.status==='error'){result.className='result bad show';result.innerHTML=`<div class="rl">${ICON.error} ${esc(b.error||t('Fehler'))}</div>`;return;}
+    if(b.status==='merge_error'){result.className='result bad show';result.innerHTML=`<div class="rl">${ICON.error} ${esc(b.error||t('Merge fehlgeschlagen'))}</div>`;return;}
+    const okN=b.ok??0,errN=b.failed??0;
+    result.className='result ok show';
+    const head=esc(t(mode==='pack'?'Pack fertig':(mode==='merge'?'Merge fertig':(mode==='text'?'Text geholt':'Fertig'))));
+    const dupL=(b.duplicates||[]).length, dupF=b.dupe_files||0;
+    const dupNote=[dupL?`${dupL} doppelte Links übersprungen`:'',
+                   dupF?`${dupF} identische Datei${dupF===1?'':'en'} entfernt`:''].filter(Boolean).join(' · ');
+    let html=`<div class="rl">${ICON.done} <strong>${head}</strong> — ${esc(t('{n} Stück',{n:okN}))}${errN?' · '+esc(t('{n} Fehler',{n:errN})):''}</div>`;
+    if(dupNote)html+=`<p class="metaline">↺ ${dupNote}</p>`;
+    const dl=[];
+    if(b.merge&&b.merged_filename)dl.push(`<a class="btn btn-mini" href="/api/download-batch/${bid}">${dlIcon}${t('Merged Video')}</a>`);
+    if((b.file_count||0)>1)dl.push(`<a class="btn btn-mini" href="/api/batch/${bid}/zip">${dlIcon}${t('Alles als ZIP')}</a>`);
+    if(b.metadata_name){dl.push(`<a class="btn btn-mini" href="/api/batch/${bid}/metadata.md">${dlIcon}${t('Metadaten .md')}</a>`);dl.push(`<a class="btn btn-mini" href="/api/batch/${bid}/metadata.json">${dlIcon}.json</a>`);}
+    if(dl.length)html+=`<div class="dlrow">${dl.join('')}</div>`;
+    // Vorlage zum lokalen Mergen des entpackten ZIP-Ordners.
+    if((b.file_count||0)>1 && mode!=='text'){
+      html+=`<div class="dlrow">
+          <button class="btn btn-ghost" onclick="batchMergeCmd('${bid}')">${t('Merge-Befehl fürs Terminal')}</button>
+          <button class="btn btn-ghost" onclick="batchWhisperCmd('${bid}')">${t('Whisper-Befehl (Transkripte)')}</button>
+        </div>
+        <div id="mergeCmdOut"></div><div id="whisperCmdOut"></div>`;
+    }
+    if(mode==='text'){
+      (b.jobs||[]).forEach(j=>{
+        const body=j.transcript||j.caption||'';
+        if(j.status==='done'&&body){html+=`<div class="metaline" style="margin-top:.8rem"><b>${esc((j.meta&&j.meta.title)||j.url)}</b></div><div class="textbox">${esc(body)}</div>`;}
+      });
+    }
+    result.innerHTML=html;
+  }
+
+  async function getDownloadScript(){
+    const urls=parseUrls(); const out=$('scriptOut');
+    if(!urls.length){urlsTA.focus();return;}
+    out.innerHTML=`<div class="metaline" style="margin-top:1rem">${t('baut Script…')}</div>`;
+    const f=new FormData();
+    f.append('urls',urls.join('\n'));f.append('quality',$('quality').value);
+    f.append('audio_only',mode==='mp3');f.append('merge',mode==='merge');f.append('merge_resolution',$('mres').value);
+    f.append('cookies_from_browser',$('lsBrowser').value);
+    try{
+      const d=await(await fetch('/api/download-script',{method:'POST',body:f})).json();
+      out.innerHTML=`<div class="codeblock" style="margin-top:.8rem"><code id="dlScript">${esc(d.script)}</code></div>
+        <div class="dlrow"><button class="btn btn-mini" onclick="copyEl('dlScript',this)">${t('Script kopieren')}</button></div>`;
+    }catch(e){out.innerHTML=`<div class="metaline" style="margin-top:1rem;color:var(--err-ink)">${esc(e.message)}</div>`;}
+  }
+
+  // Format- und Randauswahl, die über jedem generierten Merge-Befehl steht.
+  const MERGE_FMTS=[['1080x1920','9:16 — Reels / Shorts / TikTok'],['1920x1080','16:9 — YouTube / klassisch'],
+                    ['1080x1080','1:1 — quadratisch'],['1080x1350','4:5 — Instagram-Feed'],['1440x1080','4:3 — klassisch TV']];
+  function mergeControls(onchange, idSuffix){
+    const opts=MERGE_FMTS.map(([v,l])=>`<option value="${v}">${esc(t(l))}</option>`).join('');
+    return `<div class="opts" style="margin-top:.8rem">
+      <div class="field"><label for="mf${idSuffix}">Format</label>
+        <select id="mf${idSuffix}" onchange="${onchange}">${opts}</select></div>
+      <div class="field"><label for="mfit${idSuffix}">${t('Anpassung')}</label>
+        <select id="mfit${idSuffix}" onchange="${onchange}">
+          <option value="pad">${t('Mit Rand — nichts abgeschnitten')}</option>
+          <option value="crop">${t('Formatfüllend — Ränder abgeschnitten')}</option>
+        </select></div>
+    </div>`;
+  }
+
+  // Merge-Befehl passend zum gerade geladenen ZIP — Ordnername ist vorausgefüllt.
+  let bmBatch=null;
+  async function batchMergeCmd(bid){
+    const out=$('mergeCmdOut'); if(!out)return;
+    bmBatch=bid;
+    if(!$('mfB')){
+      out.innerHTML=mergeControls('renderBatchMerge()','B')+`<div id="bmBody"></div>`;
+      const sel=$('mfB'); if(sel && $('mres')) sel.value=$('mres').value;
+    }
+    renderBatchMerge();
+  }
+  async function renderBatchMerge(){
+    const body=$('bmBody'); if(!body||!bmBatch)return;
+    body.innerHTML=`<div class="metaline">${t('baut Befehl…')}</div>`;
+    try{
+      const q=new URLSearchParams({resolution:$('mfB').value,fit:$('mfitB').value});
+      const d=await(await fetch(`/api/batch/${bmBatch}/merge-script?${q}`)).json();
+      body.innerHTML=`<p class="hintsm" style="margin-top:.5rem">${t('ZIP herunterladen, entpacken — der Befehl erwartet den Ordner <span class="mono">{folder}</span>.',{folder:esc(d.folder)})}</p>
+        <div class="codeblock"><code id="bmScript">${esc(d.script)}</code></div>
+        <div class="dlrow"><button class="btn btn-mini" onclick="copyEl('bmScript',this)">${t('Kopieren')}</button></div>`;
+    }catch(e){body.innerHTML=`<div class="metaline" style="color:var(--err-ink)">${esc(e.message)}</div>`;}
+  }
+
+  // Whisper-Befehl für den entpackten ZIP-Ordner — pro Clip, damit gemischte
+  // Sprachen korrekt erkannt werden und die Zuordnung erhalten bleibt.
+  let bwBatch=null;
+  async function batchWhisperCmd(bid){
+    const out=$('whisperCmdOut'); if(!out)return;
+    bwBatch=bid;
+    if(!$('wModel')){
+      out.innerHTML=`<div class="opts" style="margin-top:.8rem">
+          <div class="field"><label for="wModel">${t('Modell')}</label>
+            <select id="wModel" onchange="renderWhisper()">
+              <option value="turbo">${t('Beste Qualität (empfohlen)')}</option>
+              <option value="medium">${t('Mittel — schneller')}</option>
+              <option value="small">${t('Klein — am schnellsten')}</option>
+            </select></div>
+          <div class="field"><label for="wLang">${t('Sprache')}</label>
+            <select id="wLang" onchange="renderWhisper()">
+              <option value="">${t('Automatisch je Clip')}</option>
+              <option value="de">${t('Deutsch erzwingen')}</option>
+              <option value="en">${t('Englisch erzwingen')}</option>
+            </select></div>
+          <div class="field"><label for="wFmt">Format</label>
+            <select id="wFmt" onchange="renderWhisper()">
+              <option value="txt">.txt</option><option value="srt">.srt</option>
+              <option value="vtt">.vtt</option><option value="json">.json</option>
+            </select></div>
+        </div><div id="wBody"></div>`;
+    }
+    renderWhisper();
+  }
+  async function renderWhisper(){
+    const body=$('wBody'); if(!body||!bwBatch)return;
+    body.innerHTML=`<div class="metaline">${t('baut Befehl…')}</div>`;
+    try{
+      const q=new URLSearchParams({model:$('wModel').value,fmt:$('wFmt').value,language:$('wLang').value});
+      const d=await(await fetch(`/api/batch/${bwBatch}/whisper-script?${q}`)).json();
+      body.innerHTML=`<p class="hintsm" style="margin-top:.5rem">${t('Läuft <b>pro Clip</b> — Whisper erkennt eine Sprache je Durchlauf, bei gemischtem Material wäre eine große Datei fehlerhaft. Unterbrechbar: fertige Clips werden übersprungen.')}</p>
+        <div class="codeblock"><code id="wScript">${esc(d.script)}</code></div>
+        <div class="dlrow"><button class="btn btn-mini" onclick="copyEl('wScript',this)">${t('Kopieren')}</button></div>`;
+    }catch(e){body.innerHTML=`<div class="metaline" style="color:var(--err-ink)">${esc(e.message)}</div>`;}
+  }
+
+  function toggleWhisperCmd(){
+    const w=$('whisperWrap');
+    w.style.display = w.style.display==='none' ? 'block' : 'none';
+  }
+
+  // Lokaler YouTube-Transkript-Befehl — funktioniert, wenn der Server blockt.
+  async function ytLocalCmd(){
+    const box=$('ytLocal'); if(!box)return;
+    box.innerHTML=`<div class="metaline">${t('baut Befehl…')}</div>`;
+    const f=new FormData();
+    f.append('url',$('trUrl').value.trim());
+    f.append('lang',$('trLang').value);
+    try{
+      const d=await(await fetch('/api/yt-transcript-script',{method:'POST',body:f})).json();
+      box.innerHTML=`<div class="codeblock" style="margin-top:.6rem"><code id="ytScript">${esc(d.script)}</code></div>
+        <div class="dlrow"><button class="btn btn-mini" onclick="copyEl('ytScript',this)">${t('Kopieren')}</button></div>`;
+    }catch(e){box.innerHTML=`<div class="metaline" style="color:var(--err-ink)">${esc(e.message)}</div>`;}
+  }
+
+  async function getMergeScript(){
+    const out=$('scriptOut');
+    if(!$('mfL')){
+      out.innerHTML=mergeControls('renderLocalMerge()','L')+`<div id="mgBody"></div>`;
+      const sel=$('mfL'); if(sel && $('mres')) sel.value=$('mres').value;
+    }
+    renderLocalMerge();
+  }
+  async function renderLocalMerge(){
+    const body=$('mgBody'); if(!body)return;
+    body.innerHTML=`<div class="metaline">${t('baut Befehl…')}</div>`;
+    const f=new FormData();
+    f.append('merge_resolution',$('mfL').value);
+    f.append('fit',$('mfitL').value);
+    try{
+      const d=await(await fetch('/api/merge-script',{method:'POST',body:f})).json();
+      body.innerHTML=`<div class="codeblock" style="margin-top:.5rem"><code id="mgScript">${esc(d.script)}</code></div>
+        <div class="dlrow"><button class="btn btn-mini" onclick="copyEl('mgScript',this)">${t('Merge-Befehl kopieren')}</button></div>
+        <p class="hintsm">${t('Nimmt alle Videos im Ordner (Bilder und Metadaten bleiben außen vor), natürlich sortiert.')}</p>`;
+    }catch(e){body.innerHTML=`<div class="metaline" style="color:var(--err-ink)">${esc(e.message)}</div>`;}
+  }
+
+  // ── Transkript ──
+  let lastTr=null, lastTrJob=null, lastTrPlain='', lastTrStamped='', lastTrSegs=[], lastTrUrl='';
+  const fmtT=s=>{s=Math.floor(s||0);const h=Math.floor(s/3600),mn=Math.floor(s%3600/60),se=s%60;return (h?h+':':'')+String(mn).padStart(h?2:1,'0')+':'+String(se).padStart(2,'0');};
+
+  // Zeitstempel-Ansicht: jede Zeile verlinkt an die Stelle im Video.
+  function ytStamp(url,sec){
+    const m=url.match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/live\/)([A-Za-z0-9_-]{6,})/);
+    return m ? `https://www.youtube.com/watch?v=${m[1]}&t=${Math.floor(sec)}s` : null;
+  }
+  function renderSegs(){
+    const box=$('trSegs'); if(!box)return;
+    box.innerHTML=lastTrSegs.map((s,i)=>{
+      const link=ytStamp(lastTrUrl,s.start);
+      const tc=link?`<a class="tc" href="${link}" target="_blank" rel="noopener">${fmtT(s.start)}</a>`
+                   :`<span class="tc">${fmtT(s.start)}</span>`;
+      return `<div class="seg" data-i="${i}">${tc}<span class="tx">${esc(s.text)}</span></div>`;
+    }).join('');
+  }
+  function trView(v){
+    const box=$('trText'), segs=$('trSegs');
+    if(!box||!segs)return;
+    const stamp = v==='stamp';
+    box.style.display = stamp?'none':'block';
+    segs.style.display = stamp?'block':'none';
+    box.textContent = lastTrPlain;
+    $('viewPlain').classList.toggle('active',!stamp);
+    $('viewStamp').classList.toggle('active',stamp);
+    trFilter();
+  }
+  // Suche: markiert Treffer und blendet in der Zeitstempel-Ansicht Nicht-Treffer aus.
+  function trFilter(){
+    const inp=$('trSearch'); if(!inp)return;
+    const q=inp.value.trim();
+    const hits=$('trHits'), box=$('trText');
+    if(!q){
+      renderSegs();
+      if(box)box.textContent=lastTrPlain;
+      if(hits)hits.textContent='';
+      return;
+    }
+    const rx=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+    let n=0;
+    // Fließtext: markieren
+    if(box){
+      box.innerHTML=esc(lastTrPlain).replace(rx,m=>{n++;return `<mark>${m}</mark>`;});
+    }
+    // Segmente: filtern + markieren
+    const segBox=$('trSegs');
+    if(segBox){
+      let segHits=0;
+      segBox.querySelectorAll('.seg').forEach(el=>{
+        const i=+el.dataset.i, s=lastTrSegs[i];
+        const match=s && rx.test(s.text); rx.lastIndex=0;
+        el.classList.toggle('hidden',!match);
+        const tx=el.querySelector('.tx');
+        if(tx)tx.innerHTML=match?esc(s.text).replace(rx,m=>`<mark>${m}</mark>`):esc(s?s.text:'');
+        if(match)segHits++;
+      });
+      if(!n)n=segHits;
+    }
+    if(hits)hits.textContent=n?t('{n} Treffer',{n:n}):t('kein Treffer');
+  }
+  async function startTranscript(){
+    const url=$('trUrl').value.trim();if(!url){$('trUrl').focus();return;}
+    const f=new FormData();f.append('url',url);f.append('lang',$('trLang').value);
+    f.append('prompt',$('trPrompt').value.trim());
+    await runTranscript('/api/transcript',f,url,'Untertitel werden extrahiert…','Video wird geprüft…');
+  }
+
+  // Eigene Datei: derselbe Job-Typ wie bei einer URL, deshalb laufen Polling,
+  // Anzeige und Export unverändert über runTranscript.
+  function trFilePicked(files){
+    const file=files&&files[0]; if(!file) return;
+    $('trFileName').textContent=file.name;
+    const f=new FormData();f.append('file',file);f.append('lang',$('trLang').value);
+    f.append('prompt',$('trPrompt').value.trim());
+    runTranscript('/api/transcript/upload',f,'','Datei wird hochgeladen…','Datei wird vorbereitet…')
+      .finally(()=>{$('trFile').value='';});
+  }
+  (()=>{
+    const z=$('trDrop'); if(!z) return;
+    ['dragenter','dragover'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add('over');}));
+    ['dragleave','drop'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove('over');}));
+    z.addEventListener('drop',e=>trFilePicked(e.dataTransfer&&e.dataTransfer.files));
+  })();
+
+  async function runTranscript(endpoint,form,url,startLabel,stageLabel){
+    const btn=$('trRun'),res=$('trResult'),wh=$('whisper');btn.disabled=true;wh.classList.remove('show');
+    res.className='result info show';res.innerHTML=`<div class="rl">${ICON.run} ${esc(t(startLabel))}</div>`;
+    let job_id;
+    try{
+      const r=await fetch(endpoint,{method:'POST',body:form});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok||!j.job_id){
+        res.className='result bad show';
+        res.innerHTML=`<div class="rl">${ICON.error} ${esc(j.detail||t('Fehlgeschlagen.'))}</div>`;
+        btn.disabled=false;return;
+      }
+      job_id=j.job_id;
+    }catch(e){
+      res.className='result bad show';res.innerHTML=`<div class="rl">${ICON.error} ${esc(e.message)}</div>`;
+      btn.disabled=false;return;
+    }
+    await pollTranscript(job_id,url,stageLabel);
+    btn.disabled=false;
+  }
+
+  async function pollTranscript(job_id,url,stageLabel){
+    const res=$('trResult'),wh=$('whisper');
+    // Fortschritt anzeigen: der Abruf kann dauern, wenn YouTube den Server blockt
+    // und öffentliche Proxys durchprobiert werden, oder Whisper eine lange Datei liest.
+    res.innerHTML=`<div class="rl">${ICON.run} <span id="trStage">${esc(t(stageLabel))}</span></div>
+      <div class="prog"><div class="track"><span id="trBar"></span></div></div>`;
+    let d;
+    for(let i=0;i<600;i++){
+      await sleep(1500);
+      d=await(await fetch(`/api/job/${job_id}`)).json();
+      const bar=$('trBar'), st=$('trStage');
+      if(bar) bar.style.width=(d.progress||5)+'%';
+      if(st && d.stage) st.textContent=d.stage;
+      if(['done','error','no_subs'].includes(d.status))break;
+    }
+    const langSel=$('trLang').value;const whisperLang=langSel==='en'?'English':'German';
+    const m=d.meta||{};const metaLine=m.title?`<div class="metaline"><b>${esc(m.title)}</b>${m.uploader?` · ${esc(m.uploader)}`:''}</div>`:'';
+    const chaps=(m.chapters||[]).filter(c=>c&&c.title);
+    const chapText=chaps.map(c=>`${fmtT(c.start)}  ${c.title}`).join('\n');
+    const chapHtml=chaps.length?`<div class="metaline" style="margin-top:.5rem"><b>${t('Kapitel')}</b></div><div class="textbox" style="max-height:180px">${esc(chapText)}</div>`:'';
+    if(d.status==='done'){
+      lastTr={title:m.title||t('Transkript'),url,uploader:m.uploader||'',date:m.upload_date||'',lang:d.used_lang||'',body:d.transcript,kind:t('Transkript'),chapters:chapText};
+      lastTrJob=job_id; lastTrPlain=d.transcript; lastTrStamped=d.timestamped||'';
+      const dur=d.duration?` · ${fmtT(d.duration)}`:'';
+      res.className='result ok show';
+      lastTrSegs=d.segments||[]; lastTrUrl=url;
+      const chars=(d.transcript||'').length;
+      const readMin=Math.max(1,Math.round((d.word_count||0)/200));
+      res.innerHTML=`<div class="rl">${ICON.done} ${t('<strong>{n}</strong> Wörter',{n:num(d.word_count)})} · <span class="mono">${esc(d.used_lang||'?')}</span>${dur}</div>${metaLine}${chapHtml}
+        <div class="segtoggle">
+          <button class="segbtn active" id="viewPlain" onclick="trView('plain')">${t('Fließtext')}</button>
+          <button class="segbtn" id="viewStamp" onclick="trView('stamp')">${t('Zeitstempel')}</button>
+        </div>
+        <div class="trbar">
+          <input type="search" id="trSearch" placeholder="${esc(t('Im Transkript suchen…'))}" oninput="trFilter()" autocomplete="off">
+          <span class="hits" id="trHits"></span>
+        </div>
+        <div class="textbox" id="trText">${esc(d.transcript)}</div>
+        <div class="seglist" id="trSegs" style="display:none"></div>
+        <div class="trstats">
+          <span>${t('{n} Wörter',{n:num(d.word_count)})}</span><span>${t('{n} Zeichen',{n:num(chars)})}</span>
+          <span>${t('~{n} Min. Lesezeit',{n:readMin})}</span>${d.duration?`<span>${t('{dur} Video',{dur:fmtT(d.duration)})}</span>`:''}
+        </div>
+        <div class="dlrow">
+          <button class="btn btn-primary" style="width:auto;padding:.6rem 1.2rem;min-height:auto" onclick="quickExport('md')">${dlIcon}${t('Als .md speichern')}</button>
+          <button class="btn btn-ghost" onclick="openExport()">${t('Andere Formate…')}</button>
+          <button class="btn btn-ghost" onclick="copyEl('trText',this)">${t('Kopieren')}</button>
+        </div>`;
+      renderSegs();
+    } else if(d.status==='no_subs'){
+      const cap=(d.caption||'').trim();
+      lastTr=cap?{title:m.title||t('Caption'),url,uploader:m.uploader||'',date:m.upload_date||'',lang:'',body:cap,kind:t('Caption')}:null;
+      res.className='result info show';
+      res.innerHTML=`<div class="rl">${ICON.wait} ${t('Keine Untertitel — Caption unten, gesprochener Text per Whisper.')}</div>${metaLine}`+(cap?`<div class="textbox" id="trText">${esc(cap)}</div><div class="dlrow"><button class="btn btn-mini" onclick="downloadMd()">${dlIcon}${t('Caption .md')}</button><button class="btn btn-ghost" onclick="copyEl('trText',this)">${t('Kopieren')}</button></div>`:'');
+      wh.classList.add('show');
+      $('whisperCmd').textContent=`pip install -U --pre "yt-dlp[default]" curl_cffi openai-whisper\n\nyt-dlp -x --audio-format mp3 -o ~/Downloads/clip.mp3 "${url}"\nwhisper ~/Downloads/clip.mp3 --language ${whisperLang} --model medium --output_dir ~/Downloads`;
+    } else {res.className='result bad show';res.innerHTML=`<div class="rl">${ICON.error} ${esc(d.error||t('Fehler'))}</div>`;}
+  }
+  function downloadMd(){
+    // tr, nicht t: t ist die Übersetzungsfunktion, und die Beschriftungen
+    // der Markdown-Datei laufen jetzt durch sie.
+    if(!lastTr)return;const tr=lastTr;
+    const fm=[`# ${tr.title}`,'',`- **${t('Quelle')}:** ${tr.url}`,tr.uploader?`- **Creator:** ${tr.uploader}`:'',tr.date?`- **${t('Datum')}:** ${tr.date}`:'',tr.lang?`- **${t('Sprache')}:** ${tr.lang}`:'',`- **${t('Typ')}:** ${tr.kind}`,'',(tr.chapters?`## ${t('Kapitel')}\n\n${tr.chapters}\n`:''),'---','',tr.body,''].filter(x=>x!=='').join('\n');
+    const blob=new Blob([fm],{type:'text/markdown'});const a=document.createElement('a');const slug=(tr.title||'transkript').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)||'transkript';a.href=URL.createObjectURL(blob);a.download=`${slug}.md`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+  // ── Export-Dialog ──
+  function openExport(){
+    if(!lastTrJob)return;
+    $('dlTiming').checked=false;
+    $('dlModal').classList.add('show');
+    updateExportPreview();
+    setTimeout(()=>$('dlName').focus(),50);
+  }
+  function closeExport(){$('dlModal').classList.remove('show');}
+  function updateExportPreview(){
+    const fmt=$('dlFmt').value;
+    // Zeitstempel sind nur bei txt/md wählbar — srt/vtt haben sie immer, json auch.
+    const optional = (fmt==='txt'||fmt==='md');
+    $('dlTimingRow').style.display = optional ? 'flex' : 'none';
+    const title=(lastTr&&lastTr.title)||'transkript';
+    const name=($('dlName').value||'[title]')
+      .replace(/\[title\]/gi,title).replace(/\[id\]/gi,ytId(lastTrUrl)||'id')
+      .replace(/\[uploader\]/gi,(lastTr&&lastTr.uploader)||'')
+      .replace(/\[publishDate\]/gi,(lastTr&&lastTr.date)||'')
+      .replace(/\[currentDate\]/gi,new Date().toISOString().slice(0,10))
+      .replace(/[\\/:*?"<>|]/g,'').trim().slice(0,90);
+    $('dlPreview').textContent='→ '+(name||'transkript').replace(/\s+/g,'_')+'.'+fmt;
+  }
+  function ytId(u){const m=(u||'').match(/(?:youtu\.be\/|[?&]v=|\/shorts\/|\/live\/)([A-Za-z0-9_-]{6,})/);return m?m[1]:'';}
+  // Markdown ist das Format, das man meistens will: lesbar, mit Quelle oben,
+  // und jede KI nimmt es direkt. Ein Klick, mit Zeitmarken.
+  function quickExport(fmt){
+    if(!lastTrJob)return;
+    const q=new URLSearchParams({timing:'true',filename:'[title]'});
+    window.location.href=`/api/transcript/${lastTrJob}/export.${fmt}?${q}`;
+  }
+  function doExport(){
+    const fmt=$('dlFmt').value;
+    const timing = (fmt==='txt'||fmt==='md') ? $('dlTiming').checked : true;
+    const q=new URLSearchParams({timing:timing?'true':'false',filename:$('dlName').value||'[title]'});
+    window.location.href=`/api/transcript/${lastTrJob}/export.${fmt}?${q}`;
+    closeExport();
+  }
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExport();});
+  document.addEventListener('input',e=>{if(e.target&&e.target.id==='dlName')updateExportPreview();});
+
+  function copyEl(id,btn){navigator.clipboard.writeText($(id).textContent).then(()=>{const o=btn.textContent;btn.textContent=t('Kopiert');setTimeout(()=>btn.textContent=o,1600);});}
+  function copyText(text,btn){navigator.clipboard.writeText(text).then(()=>{const o=btn.textContent;btn.textContent=t('Kopiert');setTimeout(()=>btn.textContent=o,1600);});}
+
+  // ── Livestream ──
+  // Die Befehle kommen vom Server. Hier stand dieselbe Logik ein zweites Mal
+  // — und als die festen Format-Nummern durch Ausdruecke ersetzt wurden,
+  // geschah das nur in der Python-Haelfte. Die Oberflaeche erzeugte weiter
+  // `-f 96` und `f137.mp4.part`, also genau die Befehle, die den Fehler
+  // "Requested format is not available" ausloesen. Ein Spiegel, den niemand
+  // prueft, driftet.
+  let _liveTimer=null;
+  function genLive(){
+    const modeV=$('lsMode').value;
+    $('lsSection').style.display=modeV==='section'?'grid':'none';
+    // Tippen im Namens- oder Pfadfeld loest sonst eine Anfrage pro Zeichen aus.
+    clearTimeout(_liveTimer);
+    _liveTimer=setTimeout(fetchLive,180);
+  }
+
+  async function fetchLive(){
+    const q=new URLSearchParams({
+      url:$('lsUrl').value.trim()||'DEINE_URL',
+      mode:$('lsMode').value, quality:$('lsQual').value,
+      name:$('lsName').value.trim()||'livestream',
+      path:$('lsPath').value.trim()||'~/Downloads',
+      start:$('lsStart').value.trim()||'00:00:00',
+      end:$('lsEnd').value.trim()||'00:05:00'});
+    let d;
+    try{ const r=await fetch('/api/livestream-script?'+q); if(!r.ok) throw 0; d=await r.json(); }
+    catch{ $('lsSteps').innerHTML='<p class="metaline">'+esc(t('Befehle konnten nicht geladen werden.'))+'</p>'; return; }
+    $('lsTitle').textContent=d.title||t('Befehl');
+    $('lsWarn').innerHTML=d.warning
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg><span>${esc(d.warning)}</span>`
+      : '';
+    $('lsSteps').innerHTML=(d.steps||[]).map((s,i)=>
+      `<div><div class="metaline" style="margin-bottom:.4rem">${(d.steps.length>1?`${i+1}. `:'')}${esc(s.t)}</div>`
+      +`<div class="codeblock"><code id="ls${i}">${esc(s.c)}</code></div>`
+      +`<button class="btn btn-ghost" style="margin-top:.5rem" onclick="copyEl('ls${i}',this)">${t('Kopieren')}</button></div>`).join('');
+  }
+
+  // ── Admin ──
+  async function loadAdmin(){
+    if(!IS_ADMIN)return;const body=$('adminBody');
+    const s=await(await fetch('/api/admin/stats')).json();
+    // tot, nicht t: ein lokales t verdeckte die Übersetzungsfunktion.
+    const tot=s.totals||{};
+    const stat=(n,l)=>`<div class="stat"><div class="n">${n||0}</div><div class="l">${esc(t(l))}</div></div>`;
+    let html=`<div class="stat-grid">${stat(tot.download,'Downloads')}${stat(tot.transcript,'Transkripte')}${stat(tot.ingest,'Ingests')}${stat(s.users.length,'Nutzer')}</div>`;
+    html+=`<div class="card"><div class="step-title" style="margin-bottom:.9rem">${t('Nutzer')}</div><div class="tablewrap"><table><thead><tr><th>User</th><th>IP</th><th>DL</th><th>${t('Transkr.')}</th><th></th></tr></thead><tbody>`;
+    s.users.forEach(u=>{
+      html+=`<tr><td><b>${esc(u.username)}</b> ${u.is_admin?'<span class="tag-admin">admin</span>':''} ${u.blocked?'<span class="tag-blocked">'+esc(t('blockiert'))+'</span>':''}</td><td class="mono">${esc(u.last_ip||'—')}</td><td>${u.downloads||0}</td><td>${u.transcripts||0}</td><td>`;
+      // Username goes in a data attribute, not into an inline handler. esc()
+      // turns ' into &#39;, the HTML parser turns it back into a real quote
+      // before JavaScript ever sees it, and the string literal breaks open —
+      // a user called  a',alert(1),'  would run code in the admin's session.
+      // No amount of escaping fixes that; the context is wrong.
+      if(!u.is_admin){html+=`<button class="btn btn-ghost" style="padding:.3rem .6rem" data-act="block" data-uid="${u.id}" data-to="${u.blocked?0:1}">${t(u.blocked?'entsperren':'blocken')}</button> <button class="btn btn-danger" data-act="deluser" data-uid="${u.id}" data-name="${esc(u.username)}">${t('löschen')}</button>`;}
+      html+=`</td></tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+    html+=`<div class="card"><div class="step-title" style="margin-bottom:.9rem">${t('IP blockieren')}</div><div class="lib-search"><input type="text" id="ipIn" placeholder="${esc(t('z.B. 203.0.113.5'))}"><button class="btn btn-ghost" onclick="blockIp()">${t('Blocken')}</button></div>`;
+    if((s.blocked_ips||[]).length){html+=`<div class="metaline">${t('Blockiert:')} ${s.blocked_ips.map(ip=>`<span class="mono">${esc(ip)}</span> <button class="lnk" data-act="unblockip" data-ip="${esc(ip)}">×</button>`).join(' · ')}</div>`;}
+    html+=`</div>`;
+    const cfg=await(await fetch('/api/admin/settings')).json();
+    html+=`<div class="card"><div class="step-title" style="margin-bottom:.9rem">${t('Server-Merge-Limit')}</div>
+      <p class="metaline" style="margin-bottom:.9rem">${t('Über diesem Limit bekommt der Nutzer beim Mergen automatisch ein lokales Script statt Server-Last.')}</p>
+      <label class="check" style="margin-bottom:.9rem"><input type="checkbox" id="mlEnabled" ${cfg.merge_limit_enabled?'checked':''}><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg></span>${t('Limit aktiv')}</label>
+      <div class="grid2">
+        <div><label for="mlClips">${t('Max. Clips')}</label><input type="text" id="mlClips" value="${cfg.merge_max_clips}"></div>
+        <div><label for="mlSecs">${t('Max. Gesamtlänge (Sek.)')}</label><input type="text" id="mlSecs" value="${cfg.merge_max_seconds}"></div>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:.9rem" onclick="saveSettings()">${t('Speichern')}</button> <span class="metaline" id="mlMsg"></span></div>`;
+
+    html+=`<div class="card"><div class="step-title" style="margin-bottom:.6rem">${t('Not-Aus')}</div>
+      <p class="metaline" style="margin-bottom:.9rem">${t('Beendet alle laufenden yt-dlp-, ffmpeg- und gallery-dl-Prozesse, bricht offene Jobs ab und räumt Teildateien weg. Für den Fall, dass sich ein Download in einer Wiederholschleife festfrisst.')}</p>
+      <button class="btn btn-danger" onclick="abortAll()">${t('Alle Aktionen abbrechen')}</button>
+      <span class="metaline" id="abortMsg"></span></div>`;
+
+    html+=`<div class="card"><div class="step-title" style="margin-bottom:.6rem">${t('Selbsttest')}</div>
+      <p class="metaline" style="margin-bottom:.9rem">${t('Prüft, ob dieser Server YouTube überhaupt erreichen darf — und trennt dabei die Ursachen, die von außen gleich aussehen: fehlende JS-Runtime, fehlender Token-Dienst oder eine gesperrte IP brauchen gegensätzliche Lösungen. Lädt nichts herunter, dauert etwa eine Minute.')}</p>
+      <button class="btn btn-ghost" onclick="runSelftest()">${t('Selbsttest starten')}</button>
+      <div id="selftestOut" style="margin-top:.9rem"></div></div>`;
+
+    html+=`<div class="card"><div class="step-title" style="margin-bottom:.6rem">${t('Fehlerprotokoll')}</div>
+      <p class="metaline" style="margin-bottom:.9rem">${t('Die letzten Fehler aus Downloads, Transkripten und Extractors. Liegt nur im Arbeitsspeicher — bei jedem Neustart leer.')}</p>
+      <div class="dlrow" style="margin-top:0">
+        <button class="btn btn-ghost" onclick="loadAdminErrors()">${t('Aktualisieren')}</button>
+        <a class="btn btn-mini" href="/api/admin/errors.md">${dlIcon}${t('Als .md')}</a>
+        <button class="btn btn-ghost" onclick="copyErrors()">${t('Kopieren')}</button>
+        <button class="btn btn-danger" onclick="clearAdminErrors()">${t('Leeren')}</button>
+      </div>
+      <div id="admErrBox" class="textbox" style="margin-top:.9rem;max-height:300px">${t('lädt…')}</div></div>`;
+
+    body.innerHTML=html;
+    loadAdminErrors();
+  }
+
+  // Three states, not two: null means "not configured", which is a legitimate
+  // setup and must not read as a failure.
+  async function runSelftest(){
+    const out=$('selftestOut');
+    out.innerHTML='<div class="empty">'+esc(t('läuft… das kann eine Minute dauern'))+'</div>';
+    try{
+      const r=await fetch('/api/admin/selftest');
+      if(!r.ok){out.innerHTML=`<div class="result bad show">${esc(t('Fehlgeschlagen (HTTP {s})',{s:r.status}))}</div>`;return;}
+      const d=await r.json();
+      const mark=c=>c.ok===true?'✓':(c.ok===false?'✗':'–');
+      const tone=c=>c.ok===true?'var(--blue-dark)':(c.ok===false?'var(--err-ink)':'var(--muted)');
+      let h='<div class="tablewrap"><table><tbody>';
+      d.checks.forEach(c=>{
+        h+=`<tr><td style="width:1.6rem;color:${tone(c)};font-weight:700">${mark(c)}</td>`
+          +`<td><b>${esc(c.name)}</b><div class="metaline mono" style="margin-top:.2rem">${esc(c.detail)}</div>`
+          +(c.hint?`<div class="metaline" style="margin-top:.25rem">${esc(c.hint)}</div>`:'')
+          +'</td></tr>';
+      });
+      h+='</tbody></table></div>';
+      const s=d.summary;
+      h+=`<p class="metaline" style="margin-top:.8rem">${esc(t('{ok} von {n} in Ordnung',{ok:s.ok,n:d.checks.length}))}`
+        +(s.failed?` · ${esc(t('Problem bei: {list}',{list:s.failing.join(', ')}))}`:'')
+        +` · Clients: <span class="mono">${esc(s.clients)}</span></p>`;
+      out.innerHTML=h;
+    }catch(e){out.innerHTML=`<div class="result bad show">${esc(e.message)}</div>`;}
+  }
+
+  async function abortAll(){
+    if(!confirm(t('Alle laufenden Downloads und Transkripte abbrechen?')))return;
+    const msg=$('abortMsg'); msg.textContent='…';
+    try{
+      const r=await(await fetch('/api/admin/abort-all',{method:'POST'})).json();
+      msg.textContent=' '+t('{n} Job(s) abgebrochen.',{n:r.jobs});
+      setTimeout(()=>{msg.textContent='';loadAdminErrors();},4000);
+    }catch(e){msg.textContent=' '+t('Fehler: {msg}',{msg:e.message});}
+  }
+
+  let errText='';
+  // Admin view: every user's errors, from the admin endpoint. Its own names
+  // and its own box — it used to share both with the System card's log, and
+  // the later definition silently replaced this one.
+  async function loadAdminErrors(){
+    const box=$('admErrBox'); if(!box)return;
+    try{
+      const d=await(await fetch('/api/admin/errors')).json();
+      if(!d.items.length){box.textContent=t('Keine Fehler protokolliert.');errText='';return;}
+      errText=d.items.map(e=>`[${e.at}] ${e.where}${e.url?' · '+e.url:''}\n${e.message}`).join('\n\n');
+      box.textContent=errText;
+    }catch(e){box.textContent=t('Konnte Protokoll nicht laden.');}
+  }
+  async function clearAdminErrors(){
+    if(!confirm(t('Fehlerprotokoll leeren?')))return;
+    await fetch('/api/admin/errors',{method:'DELETE'});loadAdminErrors();
+  }
+  function copyErrors(){
+    if(!errText)return;
+    navigator.clipboard.writeText(errText);
+  }
+  async function saveSettings(){
+    const f=new FormData();
+    f.append('merge_limit_enabled',$('mlEnabled').checked);
+    f.append('merge_max_clips',$('mlClips').value||'5');
+    f.append('merge_max_seconds',$('mlSecs').value||'900');
+    await fetch('/api/admin/settings',{method:'POST',body:f});
+    $('mlMsg').textContent=t('Gespeichert.'); setTimeout(()=>$('mlMsg').textContent='',3000);
+  }
+  // One delegated listener instead of inline handlers. The values arrive as
+  // attribute text and stay text — there is no context where a quote in a
+  // username could become code.
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if(!el) return;
+    const d = el.dataset;
+    if(d.act === 'block')      blockUser(d.uid, d.to);
+    else if(d.act === 'deluser')  delUser(d.uid, d.name);
+    else if(d.act === 'unblockip') unblockIp(d.ip);
+  });
+
+  async function blockUser(id,b){const f=new FormData();f.append('blocked',b);await fetch(`/api/admin/user/${id}/block`,{method:'POST',body:f});loadAdmin();}
+  async function delUser(id,name){if(!confirm(t('Nutzer „{name}“ löschen?',{name:name})))return;await fetch(`/api/admin/user/${id}`,{method:'DELETE'});loadAdmin();}
+  async function blockIp(){const ip=$('ipIn').value.trim();if(!ip)return;const f=new FormData();f.append('ip',ip);await fetch('/api/admin/block-ip',{method:'POST',body:f});loadAdmin();}
+  async function unblockIp(ip){const f=new FormData();f.append('ip',ip);await fetch('/api/admin/block-ip',{method:'DELETE',body:f});loadAdmin();}
+
+  // ── Konto ──
+  // The token is masked on screen by default: this page gets screen-shared
+  // and screenshotted, and a bearer token in a screenshot is a leaked key.
+  // Copy buttons always copy the real value.
+  let MCP_TOKEN='', TOKEN_SHOWN=false;
+  const maskTok=s=>s?'•'.repeat(Math.max(8,Math.min(24,s.length-4)))+s.slice(-4):'…';
+  // Fertige Einträge pro Assistent. Geprüft gegen die jeweilige Doku
+  // (10/2026); Claude Desktop und Clients ohne Header-Feld gehen über die
+  // Brücke mcp-remote (braucht Node), die den Header für sie setzt.
+  // MCP-SNIPPETS-BEGIN — tests/test_english_ui.py runs this block in node and
+  // checks that every snippet parses (JSON, TOML, YAML). Keep it self-contained.
+  //
+  // mcp-remote refuses plain http unless the host is local; a server reached
+  // as http://192.168.… needs --allow-http, so the snippet adds it itself.
+  function mcpAllowHttp(u){
+    try{ const x=new URL(u); return x.protocol==='http:' && !['localhost','127.0.0.1','[::1]'].includes(x.hostname); }
+    catch{ return false; }
+  }
+  const mcpRemoteArgs=u=>['-y','mcp-remote',u].concat(mcpAllowHttp(u)?['--allow-http']:[]);
+  const MCP_REMOTE_HTTP=t('Bei http-Adressen außerhalb von localhost verlangt mcp-remote --allow-http; der Eintrag enthält es dann schon.');
+  const MCP_CLIENTS={
+    // One line: a backslash continuation is a syntax error in PowerShell and cmd.
+    'claude-code':[t('Im Terminal ausführen.'),(u,k)=>`claude mcp add --transport http --scope user fundus ${u} --header "Authorization: Bearer ${k}"`],
+    // The token goes into a header, not into a comment: a commented-out token
+    // still sits in the file, and the GUI app never sees a shell variable.
+    'codex':[t('In ~/.codex/config.toml eintragen — gilt für CLI, App und IDE. Die Datei enthält dann den Token. Ohne Token in der Datei: statt http_headers die Zeile bearer_token_env_var = "FUNDUS_TOKEN" und den Token als Umgebungsvariable setzen (wirkt nur, wenn Codex aus dem Terminal startet).'),
+      (u,k)=>`[mcp_servers.fundus]\nurl = ${JSON.stringify(u)}\nhttp_headers = { "Authorization" = ${JSON.stringify('Bearer '+k)} }`],
+    'claude-desktop':[t('In claude_desktop_config.json eintragen. Claude Desktop spricht lokal nur stdio; mcp-remote übersetzt (Node nötig).')+(mcpAllowHttp(location.origin)?' '+MCP_REMOTE_HTTP:''),
+      (u,k)=>JSON.stringify({mcpServers:{fundus:{command:'npx',args:mcpRemoteArgs(u).concat(['--header','Authorization:${FUNDUS_AUTH}']),env:{FUNDUS_AUTH:'Bearer '+k}}}},null,2)],
+    'json':[t('In die mcp.json bzw. MCP-Einstellungen des Programms. Cline erwartet zusätzlich "type": "streamableHttp", AnythingLLM "type": "streamable".'),(u,k)=>JSON.stringify({mcpServers:{fundus:{url:u,headers:{Authorization:'Bearer '+k}}}},null,2)],
+    'goose':[t('In ~/.config/goose/config.yaml unter extensions.'),(u,k)=>`extensions:\n  fundus:\n    type: streamable_http\n    name: fundus\n    uri: ${JSON.stringify(u)}\n    headers:\n      Authorization: ${JSON.stringify('Bearer '+k)}\n    enabled: true\n    timeout: 300`],
+    'openwebui':[t('Admin-Einstellungen → External Tools → Typ MCP (Streamable HTTP), Auth Bearer. Läuft Open WebUI in Docker, statt 127.0.0.1 die Adresse des Rechners nehmen.'),(u,k)=>`URL:   ${u}\nAuth:  Bearer\nKey:   ${k}`],
+    'other':[t('Für Programme ohne Header-Feld: als stdio-Server mit der Brücke mcp-remote eintragen (Node nötig).')+(mcpAllowHttp(location.origin)?' '+MCP_REMOTE_HTTP:''),
+      (u,k)=>`npx ${mcpRemoteArgs(u).join(' ')} --header "Authorization: Bearer ${k}"`],
+  };
+  // MCP-SNIPPETS-END
+  function mcpConfig(real){
+    const tok=real||TOKEN_SHOWN?MCP_TOKEN:maskTok(MCP_TOKEN);
+    const sel=$('mcpClient'), c=MCP_CLIENTS[(sel&&sel.value)||'claude-code'];
+    return c[1](location.origin+'/mcp',tok);
+  }
+  function paintToken(){
+    $('mcpTok').textContent=TOKEN_SHOWN?MCP_TOKEN:maskTok(MCP_TOKEN);
+    const b=$('mcpTokShow'); if(b){ b.textContent=t(TOKEN_SHOWN?'Verbergen':'Anzeigen'); b.setAttribute('aria-pressed',TOKEN_SHOWN); }
+    const c=$('mcpCfg'); if(c) c.textContent=mcpConfig(false);
+    const h=$('mcpHint'), sel=$('mcpClient'); if(h&&sel) h.textContent=MCP_CLIENTS[sel.value][0];
+  }
+  function toggleToken(){ TOKEN_SHOWN=!TOKEN_SHOWN; paintToken(); }
+  let settingsLoaded=false;
+  async function loadSettings(){
+    if(settingsLoaded)return;settingsLoaded=true;
+    const d=await(await fetch('/api/me')).json();
+    $('mcpUrl').textContent=location.origin+'/mcp';
+    MCP_TOKEN=d.api_token||'';
+    paintToken();
+    const bm=`javascript:(function(){window.open('${location.origin}/?add='+encodeURIComponent(location.href),'_blank');})();`;
+    $('bmk').setAttribute('href',bm);
+  }
+
+  // ── Version + Aufbewahrung ──
+  async function loadVersion(){
+    try{
+      const d=await(await fetch('/api/version')).json();
+      const s=`<span class="dot"></span>yt-dlp ${esc(d.value)}`;
+      const vd=$('verD');if(vd)vd.innerHTML=s;
+      const vm=$('verM');if(vm)vm.innerHTML=s;
+      const h=d.retention_h||6;
+      $('retention').textContent=t('Automatische Löschung: Dateien verschwinden nach {h} Stunden vom Server.',{h:h});
+      const r2=$('ret2');if(r2)r2.textContent=t('nach {h} h',{h:h});
+      renderComponents(d.components||{});
+      renderUpdate(d);
+      // An extractor counts as present when it reported a version. "?" is
+      // what the server says when yt-dlp could not be run at all.
+      const v=(d.components||{}).yt_dlp||d.value||'';
+      const has=!!v && v!=='?';
+      if(has!==HAS_EXT){ HAS_EXT=has; renderNav(); }
+      applyExtractor(has);
+    }catch{
+      const box=$('compBox');
+      if(box) box.innerHTML=stateBox('error',t('Bausteine konnten nicht abgefragt werden.'),t('Der Server hat nicht geantwortet.'),'loadVersion');
+    }
+  }
+
+  // Der Knopf hat bis 10/2026 gefehlt — nicht der Endpunkt, der war da, nur
+  // rief ihn nichts auf. Ein yt-dlp, das drei Wochen alt ist, scheitert an
+  // Videos, die gestern liefen; ohne Anzeige erfährt man das vom kaputten
+  // Download statt von dieser Zeile.
+  function renderUpdate(d){
+    const box=$('updBox'); if(!box)return;
+    if(d.updating){
+      box.innerHTML='<p class="metaline">'+esc(t('yt-dlp wird aktualisiert… das dauert eine halbe Minute.'))+'</p>';
+      setTimeout(loadVersion,5000);
+      return;
+    }
+    let h='';
+    const pip=d.pip||[];
+    // Ein Fehlschlag kommt zuerst. Vorher wurde er verschluckt, und die
+    // Oberfläche schrieb danach »ist aktuell« — die beruhigendste mögliche
+    // Antwort auf ein Update, das nicht stattgefunden hat.
+    if(d.last_update && d.last_update.ok===false){
+      h+=`<p class="metaline warnval">${esc(t('Letzte Aktualisierung fehlgeschlagen: {why}',{why:d.last_update.detail||t('kein Grund gemeldet')}))}</p>`;
+    }
+    const stale=pip.filter(p=>p.behind);
+    if(stale.length){
+      h+='<p class="metaline">'+esc(t('Neuere Versionen verfügbar:'))+'</p>';
+      for(const p of stale){
+        h+=`<div class="kv"><span class="k">${esc(p.label)}</span>`
+         + `<span class="mono">${esc(p.installed||'—')} → <span class="warnval">${esc(p.available)}</span></span></div>`;
+      }
+      h+='<button class="btn btn-primary btn-mini" onclick="runUpdate(this)" style="margin-top:.7rem">'
+       + esc(t('Alle {n} aktualisieren',{n:stale.length}))+'</button>';
+    }else if(pip.length){
+      h+=`<p class="metaline">${esc(t('Alle {n} Bausteine sind aktuell.',{n:pip.length}))}</p>`;
+    }else if(d.latest){
+      h+='<p class="metaline">'+esc(t('yt-dlp ist aktuell.'))+'</p>';
+    }else{
+      h+='<p class="metaline">'+esc(t('Noch nicht nachgesehen.'))+'</p>';
+    }
+    // Nachsehen bleibt immer möglich. Die Hintergrundprüfung läuft täglich,
+    // und wer gerade an einem Fehler sitzt, will nicht bis morgen warten.
+    h+=' <button class="btn btn-ghost btn-mini" onclick="checkUpdate(this)" style="margin-top:.7rem">'+esc(t('Nachsehen'))+'</button>';
+    if(d.latest_checked){
+      h+=`<p class="hintsm" style="margin-top:.5rem">${esc(t('Zuletzt geprüft: {when}',{when:d.latest_checked.replace('T',' ').slice(0,16)}))}</p>`;
+    }
+    box.innerHTML=h;
+  }
+
+  // ── Fehlerprotokoll ──
+  async function loadErrors(){
+    const box=$('errBox'); if(!box)return;
+    try{
+      const d=await(await fetch('/api/errors')).json();
+      if(!d.items||!d.items.length){
+        box.innerHTML=stateBox('empty',t('Keine Fehler protokolliert.'),t('Scheitert ein Abruf, steht hier, wann und warum.'));
+        return;
+      }
+      // esc() auf jedem Feld: die Meldungen stammen aus yt-dlp und aus
+      // fremden Seiten, nicht aus unserem Code.
+      box.innerHTML=d.items.map(e=>
+        `<div class="kv" style="align-items:flex-start">`
+        +`<span class="k" style="white-space:nowrap">${esc((e.at||'').replace('T',' ').slice(5,16))}`
+        +`<br><span class="mono" style="font-size:.68rem">${esc(e.where||'')}</span></span>`
+        +`<span style="min-width:0"><span class="mono" style="font-size:.72rem;word-break:break-word">${esc(e.message||'')}</span>`
+        +(e.url?`<br><span class="hintsm" style="word-break:break-all">${esc(e.url)}</span>`:'')
+        +`</span></div>`).join('');
+    }catch{ box.innerHTML=stateBox('error',t('Protokoll nicht abrufbar.'),t('Der Server hat nicht geantwortet.'),'loadErrors'); }
+  }
+
+  async function clearErrors(btn){
+    const o=btn.textContent; btn.disabled=true; btn.textContent=t('löscht…');
+    try{ await fetch('/api/errors',{method:'DELETE'}); await loadErrors(); }
+    finally{ btn.disabled=false; btn.textContent=o; }
+  }
+
+  async function checkUpdate(btn){
+    const o=btn.textContent; btn.textContent=t('sieht nach…'); btn.disabled=true;
+    try{ await fetch('/api/version/check',{method:'POST'}); await loadVersion(); }
+    catch{ btn.textContent=o; btn.disabled=false; }
+  }
+
+  async function runUpdate(btn){
+    btn.textContent=t('lädt…'); btn.disabled=true;
+    try{
+      const r=await fetch('/api/update',{method:'POST'});
+      if(!r.ok){
+        // 403 heißt auf einem Server: kein Administrator. Das ist eine
+        // Auskunft, keine Panne, und sie gehört hin statt eines stillen
+        // Knopfes, der nichts tut.
+        $('updBox').innerHTML='<p class="metaline">'+esc(t(r.status===403
+          ? 'Nur ein Administrator kann den Extraktor aktualisieren.'
+          : 'Aktualisierung fehlgeschlagen.'))+'</p>';
+        return;
+      }
+      setTimeout(loadVersion,4000);
+    }catch{ btn.textContent=t('Jetzt aktualisieren'); btn.disabled=false; }
+  }
+
+  // Every component here has broken something at least once, and each failure
+  // looked like a different problem than it was. A missing JS runtime is
+  // indistinguishable from an IP ban until you check; a three-week-old yt-dlp
+  // fails on videos that worked yesterday. Showing them turns a mystery into
+  // a glance.
+  function renderComponents(c){
+    const box=$('compBox'); if(!box)return;
+    const row=(label,value,warn)=>value
+      ? `<div class="kv"><span class="k">${esc(t(label))}</span><span class="mono${warn?' warnval':''}">${esc(value)}</span></div>`
+      : `<div class="kv"><span class="k">${esc(t(label))}</span><span class="mono warnval">${esc(t('fehlt'))}</span></div>`;
+    let h='';
+    h+=row('Betriebsart', c.mode);
+    h+=row('yt-dlp', c.yt_dlp);
+    h+=row('JS-Runtime', c.js_runtime);      // not optional — see comment above
+    h+=row('ffmpeg', c.ffmpeg);
+    h+=row('gallery-dl', c.gallery_dl);
+    h+=row('Python', c.python);
+    h+=row('Transkription', c.whisper||t('aus'));
+    h+=row('YouTube-Clients', c.clients);
+    if(c.pot) h+=row('PO-Token-Dienst',t('aktiv'));
+    if(c.browser_cookies) h+=row('Browser-Cookies', c.browser_cookies);
+    box.innerHTML=h;
+    if(!c.js_runtime){
+      box.insertAdjacentHTML('beforeend',
+        '<p class="hintsm" style="margin-top:.7rem">'
+        +esc(t('Ohne JavaScript-Runtime bleibt YouTubes n-Challenge ungelöst — es kommen nur die langsamen Formate durch, und das sieht von außen aus wie eine Sperre.'))
+        +' <span class="mono">brew install deno</span></p>');
+    }
+  }
+
+  // Bookmarklet / Share-Target: ?add=<url> füllt das Feld vor.
+  (function(){
+    const add=new URLSearchParams(location.search).get('add');
+    if(add){ urlsTA.value=(urlsTA.value?urlsTA.value+'\n':'')+add; $('count').textContent=parseUrls().length; urlsTA.focus();
+      history.replaceState(null,'',location.pathname); showView('download'); }
+  })();
+
+  // ── Podcast ───────────────────────────────────────────────────────────────
+  // Feeds are the civilised source: published so software fetches them, no
+  // signing to work around, and about a quarter of shows ship a transcript.
+  // The interesting part is honesty about matching — an episode identified by
+  // title alone is flagged, never silently accepted.
+  let PC = null;
+
+  function pcLines(){
+    const sheet = $('pcSheet').value.trim();
+    if(sheet) return sheet;
+    return $('pcUrls').value.trim();
+  }
+  function pcCount(){
+    const sheet = $('pcSheet').value.trim();
+    if(sheet){
+      try{
+        const d = JSON.parse(sheet);
+        return (d.episodes || d || []).length || 0;
+      }catch{ return 0; }
+    }
+    return $('pcUrls').value.split('\n').filter(l => /https?:\/\//.test(l)).length;
+  }
+  ['pcUrls','pcSheet'].forEach(id => {
+    const el = $(id);
+    if(el) el.addEventListener('input', () => { $('pcCount').textContent = pcCount(); });
+  });
+
+  // The prompt is copied and pasted elsewhere, so the brief has to be named
+  // by its full address — a relative path means nothing once the text has
+  // left this page.
+  (function(){
+    const u = $('pcBriefUrl');
+    if(u) u.textContent = location.origin + '/api/podcast/auftragszettel.md';
+  })();
+
+  async function podcastStart(){
+    const n = pcCount();
+    if(!n){ $('pcUrls').focus(); return; }
+    const btn=$('pcRun'), res=$('pcResult'), prog=$('pcProg');
+    btn.disabled=true; res.className='result'; $('pcOut').style.display='none';
+    prog.style.display=''; $('pcBar').style.width='4%'; $('pcStage').textContent=t('Wird vorbereitet…');
+    try{
+      const f=new FormData();
+      const sheet=$('pcSheet').value.trim();
+      if(sheet) f.append('sheet',sheet); else f.append('urls',$('pcUrls').value);
+      f.append('audio',$('pcAudio').value);
+      const r=await fetch('/api/podcast',{method:'POST',body:f});
+      const d=await r.json();
+      if(!r.ok){ res.className='result bad show'; res.textContent=d.detail||t('Fehlgeschlagen.');
+                 prog.style.display='none'; btn.disabled=false; return; }
+      PC=d.podcast_id;
+      for(;;){
+        await sleep(1500);
+        const s=await(await fetch('/api/podcast/'+PC)).json();
+        const pct=s.total ? Math.max(6, Math.round(s.done/s.total*100)) : 6;
+        $('pcBar').style.width=pct+'%';
+        $('pcStage').textContent=s.stage||'';
+        if(s.status==='done'){ prog.style.display='none'; renderPodcast(s); break; }
+        if(s.status==='error'){ prog.style.display='none';
+          res.className='result bad show'; res.textContent=s.error||t('Fehlgeschlagen.'); break; }
+      }
+    }catch(e){ prog.style.display='none'; res.className='result bad show'; res.textContent=e.message; }
+    btn.disabled=false;
+  }
+
+  function renderPodcast(s){
+    const eps=s.episodes||[];
+    const ok=eps.filter(e=>e.status==='ok').length;
+    const unsure=eps.filter(e=>e.status==='unsicher').length;
+    const failed=eps.filter(e=>e.status==='nicht_aufgeloest').length;
+    const official=eps.filter(e=>(e.transcripts||[]).length).length;
+
+    const sym=e=>e.status==='ok'?'<span style="color:var(--blue-dark);font-weight:700">✓</span>'
+      :e.status==='unsicher'?'<span style="color:var(--warn-ink);font-weight:700">?</span>'
+      :'<span style="color:var(--err-ink);font-weight:700">✗</span>';
+    // How the episode was identified matters: GUID is certain, title is a
+    // guess worth showing.
+    const how={guid:'GUID',  'dauer+datum':'Dauer + Datum', titel:'nur Titel', unsicher:'unsicher'};
+
+    let h='<div class="tablewrap"><table><tbody>';
+    eps.forEach(e=>{
+      const mins=e.duration_s?t('{n} Min.',{n:Math.round(e.duration_s/60)}):'';
+      h+=`<tr><td style="width:1.6rem">${sym(e)}</td><td>`
+        +`<b>${esc(e.title||e.source||'—')}</b>`
+        +`<div class="metaline" style="margin-top:.2rem">${esc(e.show||'')}`
+        +(mins?` · ${mins}`:'')
+        +(e.match?` · ${esc(t('erkannt über {how}',{how:t(how[e.match]||e.match)}))}`:'')
+        +((e.transcripts||[]).length?' · <b>'+esc(t('Transkript aus dem Feed'))+'</b>':'')
+        +'</div>'
+        +(e.note?`<div class="metaline" style="color:var(--warn-ink);margin-top:.2rem">${esc(e.note)}</div>`:'')
+        +'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    h+=`<p class="metaline" style="margin-top:.8rem">${esc(t('{n} sauber',{n:ok}))}`
+      +(unsure?` · ${esc(t('{n} unsicher',{n:unsure}))}`:'')+(failed?` · ${esc(t('{n} nicht gefunden',{n:failed}))}`:'')
+      +` · ${esc(t('{n} mit offiziellem Transkript',{n:official}))}</p>`;
+    if(unsure) h+='<p class="hintsm">'
+      +esc(t('Unsichere Treffer wurden über den Titel zugeordnet. Feedtitel tragen oft Zusätze, die Spotify nicht zeigt — vor dem Zitieren kurz prüfen.'))+'</p>';
+
+    $('pcTable').innerHTML=h;
+    // Für die Zuordnung hochgeladener Script-Ergebnisse: Slug → Titel.
+    PC_EPS=eps.filter(e=>e.slug).map(e=>({slug:e.slug,title:e.title||e.slug}));
+    const needEps=eps.filter(e=>e.status!=='nicht_aufgeloest'&&!(e.transcripts||[]).length);
+    const need=needEps.filter(e=>!e.transcript_source).length;
+    $('pcUpWrap').style.display=needEps.length?'':'none';
+    $('pcUpResult').innerHTML='';
+    $('pcActions').innerHTML=
+      `<a class="btn btn-primary" style="flex:1;text-align:center" href="/api/podcast/${PC}/zip">${t('Paket herunterladen')}</a>`
+      +(need?`<button class="btn btn-ghost" onclick="pcScript('mac')">${t('Whisper-Script (Mac)')}</button>`
+             +`<button class="btn btn-ghost" onclick="pcScript('windows')">Windows</button>`:'');
+    $('pcOut').style.display='';
+    if(need){
+      $('pcResult').className='result info show';
+      $('pcResult').innerHTML=esc(plural(need,'{n} Folge ohne offizielles Transkript.','{n} Folgen ohne offizielles Transkript.'))+' '
+        +esc(t('Das Script liegt im Paket und läuft auf deinem Rechner — der Server transkribiert nicht.'));
+    }else{
+      $('pcResult').className='result ok show';
+      $('pcResult').textContent=t('Alle Folgen haben ein Transkript aus dem Feed.');
+    }
+  }
+
+  function pcScript(kind){ window.open('/api/podcast/'+PC+'/script.'+kind,'_blank'); }
+
+  // Das Script schreibt pro Folge <slug>.vtt/.srt/.txt in den Folgenordner.
+  // Zugeordnet wird über den längsten passenden Slug am Anfang des
+  // Dateinamens, weil ein Slug Präfix eines anderen sein kann.
+  let PC_EPS=[];
+  async function pcUpload(files){
+    const list=Array.from(files||[]); if(!list.length||!PC) return;
+    const out=$('pcUpResult'); out.innerHTML=esc(t('Wird hochgeladen…'));
+    const rank={txt:0,srt:1,vtt:2};
+    const ext=n=>(n.split('.').pop()||'').toLowerCase();
+    // vtt zuletzt: der Fließtext daraus soll eine einzeln hochgeladene .txt ersetzen.
+    list.sort((a,b)=>(rank[ext(a.name)]??-1)-(rank[ext(b.name)]??-1));
+    const lines=[];
+    for(const file of list){
+      const ep=PC_EPS.filter(e=>file.name.startsWith(e.slug))
+                     .sort((a,b)=>b.slug.length-a.slug.length)[0];
+      if(!ep){ lines.push(`✗ ${esc(t('{file}: keine passende Folge',{file:file.name}))}`); continue; }
+      const f=new FormData(); f.append('file',file);
+      try{
+        const r=await fetch(`/api/podcast/${PC}/transcript/${encodeURIComponent(ep.slug)}`,{method:'POST',body:f});
+        const d=await r.json().catch(()=>({}));
+        lines.push(r.ok?`✓ ${esc(t('{file} zu „{title}“',{file:file.name,title:ep.title}))}`
+                       :`✗ ${esc(file.name)}: ${esc(d.detail||t('Fehlgeschlagen.'))}`);
+      }catch(e){ lines.push(`✗ ${esc(file.name)}: ${esc(e.message)}`); }
+      out.innerHTML=lines.join('<br>');
+    }
+    out.innerHTML=lines.join('<br>');
+    $('pcUpFile').value='';
+  }
+
+  // ── Waveform trimmer ──────────────────────────────────────────────────────
+  // The server holds the audio and does the cut; everything between those two
+  // points happens here, because a scrub that needs a round trip is not a
+  // scrub. The browser already has the file it is playing, so it decodes it
+  // once and draws from the samples.
+  const TM = {id:null, dur:0, peaks:null, a:0, b:0, audio:null, raf:0, drag:null};
+
+  const tmFmtTime=s=>{
+    s=Math.max(0,s||0);
+    const m=Math.floor(s/60), r=s-m*60;
+    return m+':'+(r<10?'0':'')+r.toFixed(1);
+  };
+  const tmParseTime=v=>{
+    // Accepts "83", "1:23", "1:23.4" and "01:02:03" — people type all four.
+    const p=String(v||'').trim().split(':').map(x=>parseFloat(x.replace(',','.'))||0);
+    if(!p.length)return 0;
+    return p.reduce((acc,n)=>acc*60+n,0);
+  };
+
+  async function trimLoad(){
+    const url=$('tmUrl').value.trim(), out=$('tmResult'), btn=$('tmLoad');
+    if(!url){$('tmUrl').focus();return;}
+    btn.disabled=true; out.className='result info show'; out.textContent=t('Ton wird geladen…');
+    $('tmEditor').style.display='none';
+    try{
+      const f=new FormData(); f.append('url',url);
+      const r=await fetch('/api/trim',{method:'POST',body:f});
+      const d=await r.json();
+      if(!r.ok){out.className='result bad show'; out.textContent=d.detail||t('Fehlgeschlagen.'); btn.disabled=false; return;}
+      TM.id=d.trim_id;
+      // Loading full-quality audio takes as long as it takes; poll rather than
+      // guess a timeout.
+      for(;;){
+        await sleep(1200);
+        const s=await(await fetch('/api/trim/'+TM.id)).json();
+        if(s.status==='ready'){ out.className='result ok show'; out.textContent=t('Geladen.'); await trimOpen(s); break; }
+        if(s.status==='error'){ out.className='result bad show'; out.textContent=s.error||t('Fehlgeschlagen.'); break; }
+        out.textContent=s.stage||t('Wird vorbereitet…');
+      }
+    }catch(e){out.className='result bad show'; out.textContent=e.message;}
+    btn.disabled=false;
+  }
+
+  async function trimOpen(s){
+    TM.dur=s.duration||0; TM.a=0; TM.b=TM.dur;
+    $('tmTitle').textContent=s.title||'';
+    $('tmEditor').style.display='';
+    $('tmT1').textContent=tmFmtTime(TM.dur);
+
+    // Chapters make "cut the intro" a single click where they exist.
+    const ch=$('tmChapters');
+    ch.innerHTML=(s.chapters||[]).map((c,i)=>
+      `<button class="tm-chap" onclick="trimSetStart(${Number(c.start_time)||0})">${esc(tmFmtTime(c.start_time))} · ${esc((c.title||t('Kapitel {n}',{n:i+1})).slice(0,40))}</button>`
+    ).join('');
+
+    TM.audio=new Audio('/api/trim/'+TM.id+'/audio');
+    TM.audio.preload='auto';
+
+    // Decode once for the waveform. A copy of the bytes is needed because
+    // decodeAudioData detaches the buffer it is handed.
+    try{
+      const buf=await(await fetch('/api/trim/'+TM.id+'/audio')).arrayBuffer();
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      const decoded=await ctx.decodeAudioData(buf.slice(0));
+      TM.peaks=tmPeaks(decoded, 1400);
+      if(!TM.dur) {TM.dur=decoded.duration; TM.b=TM.dur;}
+      ctx.close();
+    }catch(e){ TM.peaks=null; }   // no waveform, but the editor still works
+    tmDraw(); tmSync();
+  }
+
+  function tmPeaks(buffer, buckets){
+    // Min and max per bucket, not RMS: RMS looks tidy but hides exactly the
+    // transient you are trying to cut on.
+    const ch=buffer.getChannelData(0), step=Math.max(1,Math.floor(ch.length/buckets));
+    const out=new Float32Array(buckets*2);
+    for(let i=0;i<buckets;i++){
+      let lo=1, hi=-1;
+      const start=i*step, end=Math.min(ch.length,start+step);
+      for(let j=start;j<end;j++){ const v=ch[j]; if(v<lo)lo=v; if(v>hi)hi=v; }
+      out[i*2]=lo===1?0:lo; out[i*2+1]=hi===-1?0:hi;
+    }
+    return out;
+  }
+
+  function tmDraw(){
+    const cv=$('tmCanvas'), wrap=$('tmWave');
+    const dpr=window.devicePixelRatio||1;
+    const w=wrap.clientWidth, h=wrap.clientHeight;
+    if(!w||!h)return;
+    cv.width=w*dpr; cv.height=h*dpr;
+    const g=cv.getContext('2d'); g.scale(dpr,dpr);
+    g.clearRect(0,0,w,h);
+
+    const mid=h/2;
+    if(!TM.peaks){
+      g.fillStyle='rgba(255,255,255,.25)'; g.fillRect(0,mid,w,1); return;
+    }
+    const n=TM.peaks.length/2;
+    g.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--blue-line').trim()||'#AEC4F3';
+    for(let x=0;x<w;x++){
+      const i=Math.floor(x/w*n);
+      const lo=TM.peaks[i*2], hi=TM.peaks[i*2+1];
+      const y1=mid-hi*mid*0.92, y2=mid-lo*mid*0.92;
+      g.fillRect(x, y1, 1, Math.max(1,y2-y1));
+    }
+    g.fillStyle='rgba(255,255,255,.18)'; g.fillRect(0,mid,w,1);
+  }
+
+  function tmSync(){
+    const wrap=$('tmWave'), w=wrap.clientWidth||1;
+    const pa=TM.dur?TM.a/TM.dur:0, pb=TM.dur?TM.b/TM.dur:1;
+    $('tmDimL').style.left='0'; $('tmDimL').style.width=(pa*100)+'%';
+    $('tmDimR').style.left=(pb*100)+'%'; $('tmDimR').style.width=((1-pb)*100)+'%';
+    $('tmGripA').style.left=(pa*w)+'px'; $('tmGripB').style.left=(pb*w)+'px';
+    $('tmT0').textContent=tmFmtTime(TM.a);
+    $('tmT1').textContent=tmFmtTime(TM.b);
+    $('tmTsel').textContent=t('{dur} ausgewählt',{dur:tmFmtTime(TM.b-TM.a)});
+    if(document.activeElement!==$('tmStart'))$('tmStart').value=tmFmtTime(TM.a);
+    if(document.activeElement!==$('tmEnd'))$('tmEnd').value=tmFmtTime(TM.b);
+  }
+
+  function trimFromFields(){
+    const a=tmParseTime($('tmStart').value), b=tmParseTime($('tmEnd').value);
+    if(a>=0&&a<TM.dur)TM.a=a;
+    if(b>0&&b<=TM.dur)TM.b=b;
+    if(TM.b<=TM.a)TM.b=Math.min(TM.dur,TM.a+0.5);
+    tmSync();
+  }
+  function trimSetStart(s){ TM.a=Math.max(0,Math.min(s,TM.b-0.5)); tmSync(); }
+  function trimReset(){ TM.a=0; TM.b=TM.dur; tmSync(); }
+
+  // Pointer events cover mouse, touch and pen in one path.
+  (function tmDragSetup(){
+    const wrap=$('tmWave'); if(!wrap)return;
+    const at=e=>{
+      const r=wrap.getBoundingClientRect();
+      return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*TM.dur;
+    };
+    wrap.addEventListener('pointerdown',e=>{
+      if(!TM.dur)return;
+      const edge=e.target.dataset?e.target.dataset.edge:null;
+      const pos=at(e);
+      // Clicking the track grabs whichever edge is nearer — faster than
+      // aiming for a grip, and it cannot do anything destructive.
+      TM.drag=edge||(Math.abs(pos-TM.a)<=Math.abs(pos-TM.b)?'a':'b');
+      wrap.setPointerCapture(e.pointerId);
+      tmMove(pos);
+    });
+    wrap.addEventListener('pointermove',e=>{ if(TM.drag)tmMove(at(e)); });
+    const stop=()=>{TM.drag=null;};
+    wrap.addEventListener('pointerup',stop);
+    wrap.addEventListener('pointercancel',stop);
+    function tmMove(pos){
+      if(TM.drag==='a')TM.a=Math.max(0,Math.min(pos,TM.b-0.5));
+      else TM.b=Math.min(TM.dur,Math.max(pos,TM.a+0.5));
+      tmSync();
+    }
+    // Keyboard: the grips are focusable, so they must be operable.
+    [['tmGripA','a'],['tmGripB','b']].forEach(([id,edge])=>{
+      const el=$(id); if(!el)return;
+      el.addEventListener('keydown',e=>{
+        const fine=e.shiftKey?0.1:1;
+        let d=0;
+        if(e.key==='ArrowLeft')d=-fine; else if(e.key==='ArrowRight')d=fine; else return;
+        e.preventDefault();
+        if(edge==='a')TM.a=Math.max(0,Math.min(TM.a+d,TM.b-0.5));
+        else TM.b=Math.min(TM.dur,Math.max(TM.b+d,TM.a+0.5));
+        tmSync();
+      });
+    });
+    window.addEventListener('resize',()=>{tmDraw();tmSync();});
+  })();
+
+  function trimPlay(){
+    if(!TM.audio)return;
+    const btn=$('tmPlay'), head=$('tmHead'), wrap=$('tmWave');
+    if(!TM.audio.paused){ TM.audio.pause(); cancelAnimationFrame(TM.raf); head.classList.remove('on'); btn.textContent=t('Ausschnitt vorhören'); return; }
+    TM.audio.currentTime=TM.a;
+    TM.audio.play().then(()=>{
+      btn.textContent=t('Stopp');
+      head.classList.add('on');
+      const tick=()=>{
+        if(TM.audio.paused)return;
+        if(TM.audio.currentTime>=TM.b){ TM.audio.pause(); head.classList.remove('on'); btn.textContent=t('Ausschnitt vorhören'); return; }
+        head.style.left=((TM.audio.currentTime/TM.dur)*wrap.clientWidth)+'px';
+        TM.raf=requestAnimationFrame(tick);
+      };
+      tick();
+    }).catch(e=>{ $('tmCutResult').className='result bad show'; $('tmCutResult').textContent=e.message; });
+  }
+
+  async function trimCut(){
+    if(!TM.id)return;
+    const out=$('tmCutResult'), btn=$('tmCut');
+    btn.disabled=true; out.className='result info show'; out.textContent=t('Wird geschnitten…');
+    try{
+      const f=new FormData();
+      f.append('start',TM.a); f.append('end',TM.b);
+      f.append('bitrate',$('tmBitrate').value);
+      f.append('fade',$('tmFade').value);
+      f.append('fmt',$('tmFmt').value);
+      const r=await fetch('/api/trim/'+TM.id+'/cut',{method:'POST',body:f});
+      const d=await r.json();
+      if(!r.ok){out.className='result bad show'; out.textContent=d.detail||t('Schnitt fehlgeschlagen.'); btn.disabled=false; return;}
+      const mb=(d.size/1048576).toFixed(1);
+      out.className='result ok show';
+      out.innerHTML=esc(t('Fertig — {dur} · {mb} MB',{dur:tmFmtTime(d.seconds),mb:mb}))+' '
+        +`<a class="rl" href="/api/trim/${TM.id}/download">${t('Herunterladen')}</a>`;
+    }catch(e){out.className='result bad show'; out.textContent=e.message;}
+    btn.disabled=false;
+  }
+
+  // WAV has no bitrate to choose — hiding the field beats showing one that
+  // silently does nothing.
+  document.addEventListener('change',e=>{
+    if(e.target && e.target.id==='tmFmt')
+      $('tmBrField').style.display = e.target.value==='wav' ? 'none' : '';
+  });
+
+  renderNav();setMode(mode);refreshCookies();loadVersion();loadErrors();genLive();loadMedia();
+</script>
+</body>
+</html>

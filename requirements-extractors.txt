@@ -1,0 +1,18 @@
+# Media extractors — installed by whoever runs Fundus, never baked into the
+# published image.
+#
+#   Docker:  EXTRACTOR_AUTO_INSTALL=1 makes the entrypoint install this file
+#   macOS:   only on request, after explicit consent (System → Media,
+#            POST /api/media/install); never automatically
+#   by hand: pip install -r requirements-extractors.txt
+#
+# These float on purpose. Platforms change their pages every few weeks and
+# yt-dlp answers within days; a pinned extractor works until it silently does
+# not. [default] pulls yt-dlp-ejs, which yt-dlp pins exactly — installing the
+# two apart is the classic way to break things while every version looks right.
+#
+# gallery-dl is GPL-2.0-only. It is run as a separate program and must never
+# be imported into Fundus code: GPL-2.0-only cannot be combined with AGPL-3.0.
+yt-dlp[default]
+curl_cffi
+gallery-dl
