@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.1
 
 - **One-line installer for macOS.** `macos/install.sh` builds the newest
   release from source and installs it to Applications; run it again to
