@@ -64,6 +64,8 @@ def test_ytdlp_never_sees_the_url_as_an_option(monkeypatch):
         return 0, "", ""
 
     monkeypatch.setattr(main, "run_cmd", fake_run_cmd)
+    # The language list only reaches yt-dlp when one is installed (CI has none).
+    monkeypatch.setattr(main, "_extractor_installed", lambda: True)
     url = "https://www.youtube.com/watch?v=abc"
     asyncio.run(main._fetch_light_meta(url))
     asyncio.run(main._fetch_caption(url))
@@ -87,6 +89,7 @@ def test_list_languages_still_parses_ytdlp_output(monkeypatch):
         return 0, out, ""
 
     monkeypatch.setattr(main, "run_cmd", fake_run_cmd)
+    monkeypatch.setattr(main, "_extractor_installed", lambda: True)
     res = asyncio.run(mcp_tools.list_transcript_languages("https://youtu.be/abc"))
     assert {(l["code"], l["auto"]) for l in res["languages"]} == {("de", True), ("en", False)}
 
