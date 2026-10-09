@@ -388,7 +388,7 @@
   "Admin-Einstellungen → External Tools → Typ MCP (Streamable HTTP), Auth Bearer. Läuft Open WebUI in Docker, statt 127.0.0.1 die Adresse des Rechners nehmen.": "Admin settings → External Tools → type MCP (Streamable HTTP), auth Bearer. If Open WebUI runs in Docker, use the host's address instead of 127.0.0.1.",
   "Für Programme ohne Header-Feld: als stdio-Server mit der Brücke mcp-remote eintragen (Node nötig).": "For apps without a header field: add as a stdio server using the mcp-remote bridge (needs Node).",
   "KI-Assistenten anbinden (MCP)": "Connect AI assistants (MCP)",
-  "Funktioniert mit Claude, Codex und offenen Modellen über LM Studio, Open WebUI, Goose und andere. Der Token ist <b>dein persönlicher</b> Schlüssel; beim Kopieren ist er immer vollständig drin.": "Works with Claude, Codex and open models via LM Studio, Open WebUI, Goose and others. The token is <b>your personal</b> key; copying always includes the full token.",
+  "Getestet mit Claude Code, Codex und mcp-remote; Einträge gibt es auch für LM Studio, Open WebUI, Goose und andere. Der Token ist <b>dein persönlicher</b> Schlüssel; beim Kopieren ist er immer vollständig drin.": "Tested with Claude Code, Codex and mcp-remote; there are entries for LM Studio, Open WebUI, Goose and others too. The token is <b>your personal</b> key; it is always copied in full.",
   "Quelle": "Source",
   "Datum": "Date",
   "In die Lesezeichen-Leiste ziehen. Auf einer YouTube-, Podcast- oder Threads-Seite anklicken → öffnet {app} mit der URL vorausgefüllt.": "Drag this into your bookmarks bar. Click it on a YouTube, podcast or Threads page → opens {app} with the URL prefilled.",

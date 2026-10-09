@@ -65,7 +65,11 @@ COPY . .
 # directories it legitimately writes to belong to it. /app itself too,
 # because main.py creates these relative to the working directory and a
 # missing one (e.g. after a bind mount over it) must be creatable.
+# a+rX: readable whatever the build context's file modes were. A checkout
+# made with a strict umask (or a file an editor saved as 0600) otherwise
+# builds fine and then dies at start with "Permission denied: main.py".
 RUN mkdir -p downloads tmp data models \
+    && chmod -R a+rX /app \
     && chmod +x docker-entrypoint.sh \
     && chown app:app /app \
     && chown -R app:app downloads tmp data models
