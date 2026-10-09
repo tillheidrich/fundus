@@ -10,6 +10,28 @@
   pointing to a release page with nothing to download.
 - The project website is gone; this repository is the home page.
 
+Found by testing every public claim against a real run (stock Docker image
+and the Mac app):
+
+- **MCP transcripts work without yt-dlp.** `get_transcript` now runs the same
+  pipeline as the web UI, so YouTube captions work on the stock image, and it
+  no longer picks a machine translation over the original track.
+  `list_transcript_languages` reads YouTube's caption list directly;
+  `get_caption` says plainly that it needs an extractor.
+- **Videos without subtitles get transcribed.** Reels, short videos and other
+  non-YouTube media without a subtitle track now fall back to local Whisper,
+  as YouTube already did (needs the optional extractor).
+- **The YouTube switch covers audio too.** With YouTube media off, the Whisper
+  fallback no longer fetches YouTube audio.
+- **Region language tags.** Feeds that say `en-gb` or `de-DE` broke Whisper,
+  in the app and in the generated scripts; only the primary subtag is used
+  now. Unknown codes (yt-dlp's `NA`) are left to Whisper's detection.
+- `CHECK_INTERVAL_H=0` now also silences the version check at start.
+- `export.<unknown>` answers 400 instead of a text file; `<html lang>`
+  follows the interface language.
+- The image makes its files readable regardless of the build context's file
+  modes.
+
 ## 1.1.0
 
 **Media download is opt-in on the Mac.** The app no longer installs yt-dlp,

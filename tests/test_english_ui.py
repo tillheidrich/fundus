@@ -251,3 +251,134 @@ def test_mcp_snippets_are_valid(tmp_path, origin, remote_http):
     assert "\n" not in other and other.startswith("npx -y mcp-remote ")
     assert ("--allow-http" in other) is remote_http
     assert ("--allow-http" in s["other"]["hint"]) is remote_http
+
+
+# ── Messages produced by the server ──────────────────────────────────────────
+# The page can be perfectly English and still show German the moment something
+# goes wrong: error details, job stages and notes are written in German where
+# they arise and reach the UI as data, not as markup.
+
+import ast  # noqa: E402
+
+MAIN = ROOT / "main.py"
+
+
+def _lang_client(client, alice, as_user, lang: str):
+    c = as_user(alice)
+    c.cookies.set("hd_lang", lang)
+    return c
+
+
+@pytest.mark.parametrize("lang,expected", [
+    ("en", "No episodes recognised. Paste links or an order sheet in the fundus-podcast/1 format."),
+    ("de", "Keine Folgen erkannt. Links einfügen oder Auftragszettel im Format fundus-podcast/1."),
+])
+def test_http_exception_detail_follows_language(client, alice, as_user, lang, expected):
+    c = _lang_client(client, alice, as_user, lang)
+    r = c.post("/api/podcast", data={"urls": ""})
+    assert r.status_code == 400
+    assert r.json()["detail"] == expected
+
+
+def test_http_exception_keeps_status_and_body_shape(client, alice, as_user):
+    """Only the text changes: status codes stay, and a detail that is not in
+    the catalogue (FastAPI's own "Not Found") passes through untouched."""
+    c = _lang_client(client, alice, as_user, "en")
+    r = c.get("/api/definitely-not-a-route")
+    assert r.status_code == 404 and r.json() == {"detail": "Not Found"}
+    r = c.get("/api/podcast/does-not-exist")
+    assert r.status_code == 404 and r.json() == {"detail": "Not found."}
+
+
+def test_job_error_and_stage_come_back_english(client, alice, as_user):
+    import main
+    jid = "en-job-test"
+    main.jobs[jid] = {"user_id": alice["id"], "status": "error",
+                      "stage": "Untertitel werden abgerufen…",
+                      "error": "Beitrag nicht gefunden (gelöscht oder privat?)."}
+    try:
+        c = _lang_client(client, alice, as_user, "en")
+        j = c.get(f"/api/job/{jid}").json()
+        assert j["error"] == "Post not found (deleted or private?)."
+        assert j["stage"] == "Fetching subtitles…"
+        # The stored job is a copy-on-read: German callers still get German.
+        assert main.jobs[jid]["error"].startswith("Beitrag nicht gefunden")
+        c.cookies.set("hd_lang", "de")
+        assert c.get(f"/api/job/{jid}").json()["error"].startswith("Beitrag nicht gefunden")
+    finally:
+        main.jobs.pop(jid, None)
+
+
+def test_placeholder_message_keeps_its_number():
+    import i18n
+    msg = ("Abgebrochen nach 120 Sekunden — die Plattform antwortet nicht oder blockt. "
+           "Mit hinterlegten Cookies geht es meist sofort; sonst den Whisper-Befehl "
+           "unten lokal ausführen.")
+    out = i18n.translate_message(msg, "en")
+    assert out.startswith("Cancelled after 120 seconds — "), out
+    assert i18n.translate_message("Abgebrochen nach 45 Sekunden.", "en") == \
+        "Cancelled after 45 seconds."
+    # The longer pattern wins over the shorter one it contains.
+    assert i18n.translate_message("12 Folgen — höchstens 5 auf einmal.", "en") == \
+        "12 episodes — at most 5 at once."
+    assert i18n.translate_message("12 Folgen — höchstens 5.", "en") == \
+        "12 episodes — at most 5."
+    # Unknown text passes through untouched; German stays German.
+    assert i18n.translate_message("ERROR: [youtube] xyz: boom", "en") == \
+        "ERROR: [youtube] xyz: boom"
+    assert i18n.translate_message("Abgebrochen nach 45 Sekunden.", "de") == \
+        "Abgebrochen nach 45 Sekunden."
+
+
+def _http_exception_details():
+    """(line, text, is_fstring) for every literal detail handed to
+    HTTPException in main.py. f-strings get a sample value per expression."""
+    tree = ast.parse(MAIN.read_text(encoding="utf-8"))
+    out = []
+
+    def render(node):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value, False
+        if isinstance(node, ast.JoinedStr):
+            return "".join(v.value if isinstance(v, ast.Constant) else "7"
+                           for v in node.values), True
+        return None, False
+
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Call) and ast.unparse(n.func).endswith("HTTPException"):
+            args = list(n.args[1:2]) + [k.value for k in n.keywords if k.arg == "detail"]
+            for a in args:
+                text, is_f = render(a)
+                if text is not None:
+                    out.append((n.lineno, text, is_f))
+    return out
+
+
+def test_every_german_http_detail_has_a_translation():
+    import i18n
+    details = _http_exception_details()
+    assert len(details) > 40, "HTTPException-Suche findet zu wenig"
+    missing = []
+    for line, text, _ in details:
+        if not GERMAN.search(text) and not re.search(r"\b(Nicht|Nur|Kein|Unbekannt)", text):
+            continue                       # already English
+        if i18n.translate_message(text, "en") == text:
+            missing.append(f"main.py:{line}: {text!r}")
+    assert not missing, "ohne englische Übersetzung:\n  " + "\n  ".join(missing)
+
+
+def test_mcp_tool_results_are_translated(monkeypatch):
+    """The registered tool is what a client calls; its errors arrive in the
+    instance language (English by default), not in the German source."""
+    import asyncio
+    import i18n
+    import mcp_tools
+    monkeypatch.setattr(i18n, "DEFAULT_LANG", "en")
+    tool = next(t for t in mcp_tools.mcp._tool_manager.list_tools()
+                if t.name == "get_podcast_package_status")
+    tok = mcp_tools.current_mcp_user.set(None)
+    try:
+        out = asyncio.run(tool.fn(podcast_id="nope"))
+    finally:
+        mcp_tools.current_mcp_user.reset(tok)
+    assert out["error"] == "No user. Check the bearer token."

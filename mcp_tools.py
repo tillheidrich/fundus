@@ -668,3 +668,30 @@ async def read_podcast_package_file(podcast_id: str, episode: str = "",
     return {"podcast_id": podcast_id, "episode": episode if kind != "manifest" else "",
             "kind": kind, "file": resolved.name, "offset": max(0, int(offset or 0)),
             "total_chars": len(body), "text": text, "next_offset": next_offset}
+
+
+# ── Messages in the instance language ─────────────────────────────────────────
+# Error texts and notes are written in German where they arise (they are shared
+# with the web UI). An MCP request carries no language choice, and the tool
+# descriptions are English, so results go out in the instance's default
+# language — English unless the operator set FUNDUS_LANG. Applied to the
+# registered tools only: what a client calls. The Python functions themselves
+# stay untouched, so other code calling them gets the source text.
+_MCP_MESSAGE_FIELDS = ("error", "note", "stage", "detail", "hint")
+
+
+def _localize_tool(fn):
+    import functools
+    import i18n
+
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs):
+        return i18n.translate_fields(await fn(*args, **kwargs), i18n.DEFAULT_LANG,
+                                     _MCP_MESSAGE_FIELDS)
+    return wrapper
+
+
+for _tool in mcp._tool_manager.list_tools():
+    if getattr(_tool, "is_async", False) and not getattr(_tool.fn, "_localized", False):
+        _tool.fn = _localize_tool(_tool.fn)
+        _tool.fn._localized = True

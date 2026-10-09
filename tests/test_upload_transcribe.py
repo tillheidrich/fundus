@@ -154,7 +154,10 @@ def test_too_long_recording_is_refused(as_user, alice, whisper, monkeypatch, tmp
     monkeypatch.setattr(main, "_media_duration", long)
     r = _upload(as_user(alice))
     assert r.status_code == 413
-    assert "Minuten" in r.json()["detail"]
+    # No language chosen: the default (English); the numbers must survive.
+    detail = r.json()["detail"]
+    assert f"{main.WHISPER_MAX_MINUTES + 5} min" in detail.lower()
+    assert str(main.WHISPER_MAX_MINUTES) in detail
     assert list(tmp_path.iterdir()) == []
 
 

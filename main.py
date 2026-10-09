@@ -146,6 +146,27 @@ BRAND_TAG = os.environ.get("BRAND_TAG", "")            # e.g. "yourbrand" — em
 BRAND_TAGLINE = os.environ.get("BRAND_TAGLINE", "Links rein. Material raus.")
 
 
+def request_lang(request: Request | None) -> str:
+    """The caller's language: ?lang=, then the cookie, then Accept-Language."""
+    if request is None:
+        return i18n.DEFAULT_LANG
+    return i18n.resolve(
+        query_lang=request.query_params.get("lang", ""),
+        cookie_lang=request.cookies.get(i18n.COOKIE_NAME, ""),
+        accept=request.headers.get("accept-language", ""),
+    )
+
+
+def _msg(request: Request | None, text: str) -> str:
+    """A server message (error, stage, note) in the caller's language."""
+    return i18n.translate_message(text, request_lang(request))
+
+
+def _localized(request: Request | None, payload):
+    """A copy of a status payload with error/stage/note/detail translated."""
+    return i18n.translate_fields(payload, request_lang(request))
+
+
 def _brand_ctx(request: Request | None = None) -> dict:
     """Template context: branding plus everything the page needs to render in
     the caller's language.
@@ -154,13 +175,7 @@ def _brand_ctx(request: Request | None = None) -> dict:
     the whole catalogue goes along as JSON because most of this UI is built by
     its own JavaScript — the browser needs the strings too.
     """
-    lang = i18n.DEFAULT_LANG
-    if request is not None:
-        lang = i18n.resolve(
-            query_lang=request.query_params.get("lang", ""),
-            cookie_lang=request.cookies.get(i18n.COOKIE_NAME, ""),
-            accept=request.headers.get("accept-language", ""),
-        )
+    lang = request_lang(request)
     return {
         "app_name": APP_NAME, "brand_tag": BRAND_TAG, "brand_tagline": BRAND_TAGLINE,
         "media_tools": __import__("mcp_tools").media_tools_enabled(),
@@ -488,6 +503,22 @@ app.mount("/mcp", mcp_app)
 templates = Jinja2Templates(directory="templates")
 
 
+from starlette.exceptions import HTTPException as _StarletteHTTPException   # noqa: E402
+from fastapi.exception_handlers import http_exception_handler as _default_http_handler  # noqa: E402
+
+
+@app.exception_handler(_StarletteHTTPException)
+async def _translated_http_exception(request: Request, exc: _StarletteHTTPException):
+    """HTTPException details are written in German, like the UI they came
+    from; an English caller gets them translated. Status code and headers are
+    FastAPI's own handling — only the text changes."""
+    if isinstance(exc.detail, str):
+        detail = _msg(request, exc.detail)
+        if detail != exc.detail:
+            exc = _StarletteHTTPException(exc.status_code, detail, getattr(exc, "headers", None))
+    return await _default_http_handler(request, exc)
+
+
 async def _boot():
     if private_ext:
         await private_ext.on_boot()
@@ -734,7 +765,8 @@ async def _gate(request: Request, call_next):
             token = auth[7:].strip()
         muser = db.get_user_by_token(token) if token else None
         if not muser or muser.get("blocked"):
-            return JSONResponse({"error": "MCP: gültigen Bearer-Token (api_token) senden."}, status_code=401)
+            return JSONResponse({"error": _msg(request, "MCP: gültigen Bearer-Token (api_token) senden.")},
+                                status_code=401)
         mcp_tools.current_mcp_user.set(muser)
         return await call_next(request)
     open_ok = path in _OPEN_PATHS or (path.startswith("/fonts/") and path[7:] in _FONTS)
@@ -745,7 +777,7 @@ async def _gate(request: Request, call_next):
     if _desktop_request(request) and not open_ok:
         if not _local_request_allowed(request):
             return JSONResponse(
-                {"detail": "Anfrage von einer fremden Seite abgewiesen."}, status_code=403)
+                {"detail": _msg(request, "Anfrage von einer fremden Seite abgewiesen.")}, status_code=403)
         if _local_user():
             open_ok = True
     if not open_ok:
@@ -753,7 +785,7 @@ async def _gate(request: Request, call_next):
         user = db.get_user(uid) if uid else None
         if not user or user.get("blocked"):
             if path.startswith("/api/"):
-                return JSONResponse({"detail": "Nicht angemeldet"}, status_code=401)
+                return JSONResponse({"detail": _msg(request, "Nicht angemeldet")}, status_code=401)
             return RedirectResponse("/login", status_code=302)
         db.touch_ip(user["id"], ip)
     # Refuse an oversized upload on its declared size, before the multipart
@@ -765,13 +797,13 @@ async def _gate(request: Request, call_next):
         6 * 1024 * 1024 if re.fullmatch(r"/api/podcast/[^/]+/transcript/[^/]+", path) else 0)
     if upload_cap and request.method == "POST":
         if "transfer-encoding" in request.headers or "content-length" not in request.headers:
-            return JSONResponse({"detail": "Content-Length fehlt."}, status_code=411)
+            return JSONResponse({"detail": _msg(request, "Content-Length fehlt.")}, status_code=411)
         try:
             declared = int(request.headers.get("content-length") or 0)
         except ValueError:
-            return JSONResponse({"detail": "Content-Length ungültig."}, status_code=400)
+            return JSONResponse({"detail": _msg(request, "Content-Length ungültig.")}, status_code=400)
         if declared > upload_cap:
-            return JSONResponse({"detail": "Datei zu groß."}, status_code=413)
+            return JSONResponse({"detail": _msg(request, "Datei zu groß.")}, status_code=413)
     resp = await call_next(request)
     resp.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
     # First page load in the app carries the token in the query; from then on
@@ -3060,7 +3092,7 @@ async def batch(
 
 
 @app.get("/api/batch/{batch_id}")
-async def batch_status(batch_id: str, user: dict = Depends(current_user)):
+async def batch_status(batch_id: str, request: Request, user: dict = Depends(current_user)):
     b = batches.get(batch_id)
     if not b or b.get("user_id") != user["id"]:
         raise HTTPException(404, "Batch not found")
@@ -3090,7 +3122,7 @@ async def batch_status(batch_id: str, user: dict = Depends(current_user)):
         # grows — a stuck download should look stuck, not idle.
         "stalled_for": int(time.time() - b.get("last_change", started or time.time())),
     }
-    return result
+    return _localized(request, result)
 
 
 def _owned_batch(batch_id: str, user: dict) -> dict:
@@ -4069,11 +4101,11 @@ def _write_metadata_sidecar(batch_id: str, job_ids: list[str]):
 
 
 @app.get("/api/job/{job_id}")
-async def job_status(job_id: str, user: dict = Depends(current_user)):
+async def job_status(job_id: str, request: Request, user: dict = Depends(current_user)):
     job = jobs.get(job_id)
     if not job or job.get("user_id") != user["id"]:
         raise HTTPException(404, "Job not found")
-    return job
+    return _localized(request, job)
 
 
 @app.get("/api/download-file/{job_id}")
@@ -4203,9 +4235,9 @@ def _own_trim(trim_id: str, user: dict) -> dict:
 
 
 @app.get("/api/trim/{trim_id}")
-async def trim_status(trim_id: str, user: dict = Depends(current_user)):
+async def trim_status(trim_id: str, request: Request, user: dict = Depends(current_user)):
     rec = _own_trim(trim_id, user)
-    return {k: v for k, v in rec.items() if k not in ("user_id", "url")}
+    return _localized(request, {k: v for k, v in rec.items() if k not in ("user_id", "url")})
 
 
 @app.get("/api/trim/{trim_id}/audio")
@@ -5221,7 +5253,7 @@ async def _media_install_job():
 @app.get("/api/media/status")
 async def media_status(request: Request, user: dict = Depends(current_user)):
     _require_desktop(request)
-    return _media_status()
+    return _localized(request, _media_status())
 
 
 @app.post("/api/media/install")
@@ -5236,7 +5268,7 @@ async def media_install(request: Request, background_tasks: BackgroundTasks,
     db.set_setting("media_consent_at", datetime.now().isoformat(timespec="seconds"))
     _media_install.update(status="running", detail="", at=None)
     background_tasks.add_task(_media_install_job)
-    return _media_status()
+    return _localized(request, _media_status())
 
 
 @app.post("/api/media/settings")
@@ -5267,7 +5299,7 @@ async def media_settings(request: Request,
         db.set_setting("media_tools", "1" if media_tools else "0")
         if media_tools:
             db.set_setting("media_tools_consent_at", now)
-    return _media_status()
+    return _localized(request, _media_status())
 
 
 @app.post("/api/podcast")
@@ -5318,7 +5350,7 @@ def _own_podcast(pid: str, user: dict) -> dict:
 
 
 @app.get("/api/podcast/{pid}")
-async def podcast_status(pid: str, user: dict = Depends(current_user)):
+async def podcast_status(pid: str, request: Request, user: dict = Depends(current_user)):
     rec = _own_podcast(pid, user)
     out = {k: v for k, v in rec.items() if k != "user_id"}
     # The slug is what the upload route keys on; computing it here keeps the
@@ -5327,7 +5359,7 @@ async def podcast_status(pid: str, user: dict = Depends(current_user)):
         out["episodes"] = [{**ep, "slug": podcast.episode_slug(ep)}
                            if ep.get("status") != "nicht_aufgeloest" else ep
                            for ep in rec["episodes"]]
-    return out
+    return _localized(request, out)
 
 
 @app.get("/api/podcast/{pid}/search")
@@ -6198,13 +6230,23 @@ async def _transcript_job_inner(job_id: str, url: str, lang: str, user_id: int |
             return
 
         caption = await _fetch_caption(url) if cookies else ""
+        # Say which wall was hit. With YouTube media switched off, the audio
+        # was never requested, and blaming a blocked server address sent
+        # people looking for a problem that did not exist.
+        if not youtube_video_enabled():
+            msg = ("Dieses Video hat keine Untertitel. Den Ton zum Transkribieren holt "
+                   "Fundus nur, wenn YouTube-Medien eingeschaltet sind (System → Medien, "
+                   "auf Servern ENABLE_YOUTUBE_VIDEO=1).")
+            blocked = False
+        else:
+            msg = ("YouTube lehnt Anfragen von der Adresse dieses Servers ab, und auch "
+                   "der Ton ließ sich nicht laden. Nutze die Desktop-App oder "
+                   "veröffentlichte Untertitel — oder den Whisper-Befehl unten "
+                   "lokal ausführen.")
+            blocked = True
         jobs[job_id].update({
-            "status": "no_subs", "caption": caption, "meta": meta, "blocked": True,
-            "progress": 100, "stage": "",
-            "error": ("YouTube lehnt Anfragen von der Adresse dieses Servers ab, und auch "
-                      "der Ton ließ sich nicht laden. Nutze die Desktop-App oder "
-                      "veröffentlichte Untertitel — oder den Whisper-Befehl unten "
-                      "lokal ausführen."),
+            "status": "no_subs", "caption": caption, "meta": meta, "blocked": blocked,
+            "progress": 100, "stage": "", "error": msg,
         })
         log_error("Transkript", "Kein Weg erfolgreich (Untertitel + Whisper)", url)
         return
@@ -6253,6 +6295,7 @@ async def _transcript_job_inner(job_id: str, url: str, lang: str, user_id: int |
                       "die Desktop-App oder veröffentlichte Untertitel — oder den "
                       "Whisper-Befehl unten lokal ausführen."
                       if blocked else
+                      YTDLP_MISSING if not _extractor_installed() else
                       "Keine Untertitel vorhanden — für gesprochenen Text bitte den "
                       "Whisper-Befehl unten auf dem Mac ausführen."),
         })

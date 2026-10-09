@@ -103,6 +103,90 @@ def translate(key: str, lang: str = DEFAULT_LANG) -> str:
     return catalog(lang).get(key, key)
 
 
+# ── Messages produced by the server ───────────────────────────────────────────
+# Error details, job stages and notes are written in German where they arise,
+# like the rest of the UI. They are translated on the way out. Many of them are
+# f-strings ("Abgebrochen nach 120 Sekunden …"), which an exact lookup cannot
+# find, so catalogue keys may carry {name} placeholders: such a key becomes a
+# pattern, the placeholders capture whatever stands in their place, and the
+# captured values are put into the translation.
+
+_PLACEHOLDER = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
+_pattern_cache: dict[str, list[tuple[re.Pattern, str]]] = {}
+# A key that is almost all placeholder ("{n} Folgen") would match far too much
+# free text; patterns need this much literal text to be trusted.
+_MIN_LITERAL = 6
+
+
+def _patterns(lang: str) -> list[tuple[re.Pattern, str]]:
+    if lang in _pattern_cache:
+        return _pattern_cache[lang]
+    out: list[tuple[int, re.Pattern, str]] = []
+    for key, val in catalog(lang).items():
+        # ${…} keys are JavaScript template literals, not server messages.
+        if key == val or "${" in key or not _PLACEHOLDER.search(key):
+            continue
+        literal = _PLACEHOLDER.sub("", key)
+        if len(literal.strip()) < _MIN_LITERAL:
+            continue
+        rx, seen, pos = [], set(), 0
+        for m in _PLACEHOLDER.finditer(key):
+            rx.append(re.escape(key[pos:m.start()]))
+            name = m.group(1)
+            rx.append(f"(?P={name})" if name in seen else f"(?P<{name}>.+?)")
+            seen.add(name)
+            pos = m.end()
+        rx.append(re.escape(key[pos:]))
+        out.append((len(literal), re.compile("".join(rx), re.S), val))
+    # Most literal text first: "{n} Folgen — höchstens {max} auf einmal." must
+    # win over "{n} Folgen — höchstens {max}." for the longer message.
+    out.sort(key=lambda x: -x[0])
+    _pattern_cache[lang] = [(p, v) for _, p, v in out]
+    return _pattern_cache[lang]
+
+
+def translate_message(msg, lang: str = DEFAULT_LANG):
+    """A server message in the caller's language. Exact catalogue hits first,
+    then placeholder patterns; anything unknown (a raw yt-dlp line, an
+    exception text) is returned unchanged. Non-strings pass through."""
+    if not isinstance(msg, str) or not msg:
+        return msg
+    lang = normalize(lang)
+    if lang == SOURCE_LANG:
+        return msg
+    cat = catalog(lang)
+    hit = cat.get(msg)
+    if hit is not None:
+        return hit
+    stripped = msg.strip()
+    if stripped != msg and stripped in cat:
+        return cat[stripped]
+    for rx, val in _patterns(lang):
+        m = rx.fullmatch(msg)
+        if m:
+            groups = m.groupdict()
+            return _PLACEHOLDER.sub(lambda p: groups.get(p.group(1), p.group(0)), val)
+    return msg
+
+
+MESSAGE_FIELDS = ("error", "stage", "note", "detail")
+
+
+def translate_fields(obj, lang: str = DEFAULT_LANG, fields=MESSAGE_FIELDS):
+    """A copy of a status payload with its message fields translated, at any
+    depth (a batch carries its jobs, a podcast package its episodes). The
+    stored job state is never touched — other requests may want German."""
+    if normalize(lang) == SOURCE_LANG:
+        return obj
+    if isinstance(obj, dict):
+        return {k: (translate_message(v, lang) if k in fields and isinstance(v, str)
+                    else translate_fields(v, lang, fields))
+                for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [translate_fields(v, lang, fields) for v in obj]
+    return obj
+
+
 def catalog_json(lang: str) -> str:
     """The whole catalogue for the browser. The UI is a single page whose
     JavaScript builds most of its own markup, so it needs the strings too.
