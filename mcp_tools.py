@@ -177,36 +177,30 @@ async def get_transcript(url: str, lang: str = "native", format: str = "text",
              "word_count": m.get("word_count"), "text": body},
             "text", offset, max_chars)
 
-    meta = await main._fetch_light_meta(url, cookies)
-    meta["extractor"] = main._platform_of(url)
-    if lang == "native":
-        detected = meta.get("language", "")
-        sub_langs = f"{detected},{detected}-orig,en,de" if detected else "en,de"
-        prefer = detected or "en"
-    else:
-        sub_langs = f"{lang},{lang}-orig,en"
-        prefer = lang
+    # Same pipeline as the web UI, so both answer alike: YouTube captions via
+    # the timedtext API (no extractor needed), yt-dlp subtitles elsewhere,
+    # then local Whisper where it is allowed. Until 10/2026 this tool had a
+    # path of its own that always needed yt-dlp (so it failed on the stock
+    # image) and could pick a machine translation over the original track.
+    main.jobs[jid] = {"status": "pending", "url": url, "type": "transcript",
+                      "user_id": _uid()}
+    try:
+        await main._transcript_job(jid, url, lang, _uid())
+    finally:
+        job = main.jobs.pop(jid, None) or {}
+    for f in main.TMP_DIR.glob(f"{jid}*"):
+        f.unlink(missing_ok=True)
 
-    code, err = await main._fetch_subs(jid, url, sub_langs, cookies)
-    chosen = main._pick_sub_file(jid, prefer)
-    if not chosen:
-        await main._fetch_subs(jid, url, "all", cookies)
-        chosen = main._pick_sub_file(jid, prefer)
-
-    if chosen:
-        segments = main._parse_sub_file(chosen)
-        text = main.segments_to_text(segments)
-        used = prefer
-        mm = main.re.search(r"\.([a-zA-Z-]{2,7})\.(?:json3|vtt|srv3)$", chosen.name)
-        if mm:
-            used = mm.group(1)
-        for f in main.TMP_DIR.glob(f"{jid}*"):
-            f.unlink(missing_ok=True)
+    meta = job.get("meta") or {}
+    if job.get("status") == "done":
+        segments = job.get("segments") or []
         db.log_event(_uid(), "transcript")
         out = {"ok": True, "title": meta.get("title"), "uploader": meta.get("uploader"),
-               "url": meta.get("webpage_url") or url, "lang": used,
-               "word_count": len(text.split()),
-               "duration": round(segments[-1]["start"] + (segments[-1]["dur"] or 0)) if segments else 0}
+               "url": meta.get("webpage_url") or url,
+               "lang": job.get("used_lang") or "",
+               "source": ("whisper" if meta.get("via_whisper") else "captions"),
+               "word_count": job.get("word_count", 0),
+               "duration": job.get("duration", 0)}
         if format == "segments":
             out["segments"] = segments
         elif format == "timestamps":
@@ -216,20 +210,15 @@ async def get_transcript(url: str, lang: str = "native", format: str = "text",
         elif format == "vtt":
             out["transcript"] = main.segments_to_vtt(segments)
         else:
-            out["transcript"] = text
+            out["transcript"] = job.get("transcript", "")
         # word_count and duration describe the whole transcript, not the
         # page, so they are computed before slicing.
         return _apply_page(out, "transcript", offset, max_chars)
 
-    for f in main.TMP_DIR.glob(f"{jid}*"):
-        f.unlink(missing_ok=True)
-    caption = await main._fetch_caption(url)
-    blocked = "not a bot" in (err or "").lower() or "sign in to confirm" in (err or "").lower()
+    caption = job.get("caption") or ""
     return {"ok": bool(caption), "title": meta.get("title"), "caption": caption,
-            "blocked": blocked,
-            "note": ("YouTube lehnt Anfragen von der Adresse dieses Servers ab — "
-                     "Desktop-App oder veröffentlichte Untertitel nutzen." if blocked else
-                     "Keine Untertitel — nur Caption verfügbar (Instagram/TikTok).")}
+            "blocked": bool(job.get("blocked")),
+            "note": job.get("error") or "No transcript available."}
 
 
 @mcp.tool(description="List the caption languages available for a YouTube video (code and whether auto-generated).")
@@ -238,6 +227,22 @@ async def list_transcript_languages(url: str) -> dict:
     if err := _bad_url(url):
         return err
     url = url.strip()
+    # YouTube first through the same caption API the transcripts use: it
+    # needs no extractor, so this works on the stock image too.
+    vid = main._yt_video_id(url) if main._is_youtube(url) else ""
+    if vid:
+        def _list():
+            from youtube_transcript_api import YouTubeTranscriptApi
+            return [{"code": t.language_code, "name": t.language, "auto": bool(t.is_generated)}
+                    for t in YouTubeTranscriptApi().list(vid)]
+        try:
+            langs = await main.asyncio.to_thread(_list)
+            return {"count": len(langs), "languages": langs[:200]}
+        except Exception as e:
+            if not main._extractor_installed():
+                return {"count": 0, "languages": [], "error": str(e)[:300]}
+    if not main._extractor_installed():
+        return {"count": 0, "languages": [], "error": main.YTDLP_MISSING}
     cookies = db.get_ig_cookies(_uid()) if _uid() else ""
     ck = None
     args = ["--list-subs", "--skip-download", "--no-playlist",
@@ -269,6 +274,8 @@ async def get_caption(url: str) -> dict:
     if err := _bad_url(url):
         return err
     url = url.strip()
+    if not main._extractor_installed():
+        return {"ok": False, "error": main.YTDLP_MISSING}
     meta = await main._fetch_light_meta(url)
     caption = await main._fetch_caption(url)
     return {"title": meta.get("title"), "uploader": meta.get("uploader"), "caption": caption}

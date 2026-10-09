@@ -497,9 +497,12 @@ async def _boot():
     # back on every restart.
     if UPDATE_INTERVAL_H > 0:
         await _self_update()
-    # Check on every boot regardless. Reading a version number is not the
-    # thing the release posture switched off.
-    asyncio.create_task(_check_ytdlp_latest())
+    # Check on boot too: reading a version number is not the thing the
+    # release posture switched off. But CHECK_INTERVAL_H=0 is the documented
+    # off switch for this connection, so it has to silence the boot check as
+    # well; until 10/2026 it only stopped the daily one.
+    if CHECK_INTERVAL_H > 0 or UPDATE_INTERVAL_H > 0:
+        asyncio.create_task(_check_ytdlp_latest())
 
 
 # ── Sessions (signed cookie: uid.timestamp.hmac) ──────────────────────────────
@@ -1017,8 +1020,19 @@ def _ytdlp_cmd() -> list[str]:
         return ["yt-dlp"]          # installed as a standalone binary
 
 
+YTDLP_MISSING = ("No media extractor installed (yt-dlp). Platforms other than "
+                 "YouTube captions and podcasts need it; see README → "
+                 "Optional: media extractors.")
+
+
 async def run_ytdlp(args: list[str]) -> tuple[int, str, str]:
-    return await run_cmd(_ytdlp_cmd() + args)
+    # The image ships without yt-dlp. Every caller already handles a failed
+    # run; a raised FileNotFoundError instead reached MCP clients as a bare
+    # "[Errno 2] No such file or directory".
+    try:
+        return await run_cmd(_ytdlp_cmd() + args)
+    except FileNotFoundError:
+        return 127, "", YTDLP_MISSING
 
 
 def require_http_url(url: str) -> str:
@@ -1243,8 +1257,16 @@ async def _download_single(job_id: str, url: str, cookies: str, quality: str,
     files: list[str] = []
     from collections import deque
     err_tail: deque = deque(maxlen=50)
-    proc = await asyncio.create_subprocess_exec(
-        "yt-dlp", *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    # Same interpreter-bound yt-dlp as everywhere else (see _ytdlp_cmd); the
+    # bare name could hit an older copy earlier on PATH.
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *_ytdlp_cmd(), *args, stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE)
+    except FileNotFoundError:
+        jobs[job_id]["status"] = "error"
+        jobs[job_id]["error"] = YTDLP_MISSING
+        return None
 
     async def read_out():
         async for raw in proc.stdout:
@@ -3359,7 +3381,12 @@ def safe_lang(value, fallback: str = "de") -> str:
     a quoted but nonsensical value would only move the failure later.
     """
     v = str(value or "").strip()
-    return v if _LANG_RE.match(v) else fallback
+    if not _LANG_RE.match(v):
+        return fallback
+    # Feeds say "en-us" or "de-DE"; Whisper (faster-whisper, mlx, the CLI
+    # tools in the generated scripts) only knows the primary subtag and
+    # rejects the rest outright. Found by testing a public feed end to end.
+    return v.split("-")[0].lower()
 
 
 # Characters a folder name may use and still sit inside double quotes in a
@@ -4536,7 +4563,7 @@ def _whisper_prompt(ep: dict) -> str:
         for run in re.findall(r"\b(?:[A-ZÄÖÜ][a-zäöüß]+(?:\s+|$)){2,4}", chunk + " "):
             words = run.split()
             while words and words[0].lower() in STOP:
-                words.pop(0)        # "Mit Gregor Schmalzried" → "Gregor Schmalzried"
+                words.pop(0)        # "Mit Ada Lovelace" → "Ada Lovelace"
             while words and words[-1].lower() in STOP:
                 words.pop()
             # A lone first name is worse than nothing: Whisper still mangles
@@ -5636,7 +5663,12 @@ async def _fetch_light_meta(url: str, cookies: str = "") -> dict:
             code, out, err, _ = again
     if ck and ck.exists():
         ck.unlink()
-    lines = (out or "").strip().splitlines()
+    # yt-dlp prints "NA" for every field it does not know. Left in, that
+    # became an uploader called "NA" and, worse, the language "NA", which
+    # Whisper refuses outright: the transcript failed for exactly the
+    # subtitle-less videos the Whisper fallback exists for.
+    lines = [("" if l.strip() in ("NA", "None") else l)
+             for l in (out or "").strip().splitlines()]
     lines += [""] * (6 - len(lines))
     lang = lines[4].strip()
     chapters = []
@@ -5708,6 +5740,13 @@ def _fetch_transcript_sync(vid: str, prefer_lang: str, proxy: str = "",
     return segs, tr.language_code
 
 
+def _yt_video_id(url: str) -> str:
+    m = (re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", url or "")
+         or re.search(r"youtube\.com/(?:watch\?.*?v=|shorts/|embed/|live/)([A-Za-z0-9_-]{6,})",
+                      url or ""))
+    return m.group(1) if m else ""
+
+
 async def _transcript_via_api(url: str, prefer_lang: str,
                               job_id: str = "") -> tuple[list[dict], str]:
     """Second, independent transcript path.
@@ -5716,11 +5755,9 @@ async def _transcript_via_api(url: str, prefer_lang: str,
     reads the published caption track through the timedtext endpoint, a
     lighter request. Returns (segments, language_code).
     """
-    m = (re.search(r"youtu\.be/([A-Za-z0-9_-]{6,})", url)
-         or re.search(r"youtube\.com/(?:watch\?.*?v=|shorts/|embed/|live/)([A-Za-z0-9_-]{6,})", url))
-    if not m:
+    vid = _yt_video_id(url)
+    if not vid:
         return [], ""
-    vid = m.group(1)
 
     _stage(job_id, 15, "Untertitel werden abgerufen…")
     try:
@@ -5874,6 +5911,22 @@ async def _download_audio(job_id: str, url: str, cookies: str = "") -> Path | No
     return hits[0] if hits else None
 
 
+def _whisper_knows(code: str) -> bool:
+    """Whether Whisper has this language. Asks the installed engine; if
+    neither is importable (tests, a server without Whisper), says yes and
+    leaves the decision to whoever transcribes."""
+    try:
+        from faster_whisper.tokenizer import _LANGUAGE_CODES
+        return code in _LANGUAGE_CODES
+    except Exception:
+        pass
+    try:
+        from mlx_whisper.tokenizer import LANGUAGES
+        return code in LANGUAGES
+    except Exception:
+        return True
+
+
 async def _whisper_segments(path: Path, lang: str, prompt: str = "",
                             timeout: float = 0) -> tuple[list[dict], str]:
     """Transcribe locally. Bounded by WHISPER_CONCURRENCY (one by default):
@@ -5883,6 +5936,15 @@ async def _whisper_segments(path: Path, lang: str, prompt: str = "",
     `prompt` is Whisper's initial_prompt: names and terms it would otherwise
     spell by ear. Already capped by the caller."""
     initial = prompt or None
+    # Every caller, not just the podcast path: a region tag ("en-gb") makes
+    # both engines refuse the whole file.
+    if lang and lang not in ("native", "auto"):
+        lang = safe_lang(lang, "")
+    # A code Whisper does not know ("na", "xx") makes it reject the file;
+    # letting it detect the language costs nothing.
+    if lang and lang not in ("native", "auto") and not _whisper_knows(lang):
+        lang = ""
+    lang = lang or "native"
 
     def _run_mlx() -> tuple[list[dict], str]:
         import mlx_whisper
@@ -5955,7 +6017,13 @@ async def _transcript_via_whisper(job_id: str, url: str, lang: str,
                                   cookies: str = "", prompt: str = "") -> tuple[list[dict], str]:
     """Audio → text. Returns ([], "") when unavailable rather than raising —
     this is the last stage, and a crash here would hide every earlier reason."""
-    if not WHISPER_ENABLED:
+    if not WHISPER_ENABLED or not _extractor_installed():
+        return [], ""
+    # Fetching YouTube audio is media retrieval from YouTube, so the same
+    # switch that governs video downloads governs it. Before 10/2026 this
+    # path ignored the switch: with an extractor present, a "video off"
+    # instance still pulled audio for the Whisper fallback.
+    if _is_youtube(url) and not youtube_video_enabled():
         return [], ""
     audio = None
     try:
@@ -6163,12 +6231,21 @@ async def _transcript_job_inner(job_id: str, url: str, lang: str, user_id: int |
         chosen = _pick_sub_file(job_id, prefer)
 
     if not chosen:
-        # No subtitle track (always true for Instagram/TikTok, and for YT videos
-        # without captions). Fall back to the written caption/description.
-        caption = await _fetch_caption(url)
         for f in TMP_DIR.glob(f"{job_id}*"):
             f.unlink(missing_ok=True)
         blocked = "not a bot" in (err or "").lower() or "sign in to confirm" in (err or "").lower()
+        # Reels, TikToks and most short videos carry no subtitle track at
+        # all, so for them the spoken text only exists in the audio. Same
+        # route YouTube takes above: fetch the audio, transcribe it here.
+        if not blocked:
+            segments, used = await _transcript_via_whisper(job_id, url, prefer, cookies,
+                                                           prompt=prompt)
+            if segments:
+                meta["via_whisper"] = True
+                _finish_transcript(job_id, segments, used or prefer, meta, True)
+                return
+        # Nothing spoken to be had: fall back to the written caption/description.
+        caption = await _fetch_caption(url)
         jobs[job_id].update({
             "status": "no_subs", "caption": caption, "meta": meta,
             "blocked": blocked,
@@ -6274,10 +6351,12 @@ async def transcript_export(job_id: str, fmt: str, request: Request, timing: boo
         body, media = "\n".join(lines) + "\n", "text/markdown"
     elif fmt == "ts":
         body, media = segments_to_timestamped(segs), "text/plain"
-    else:
+    elif fmt == "txt":
         body = segments_to_timestamped(segs) if timing else (job.get("transcript") or "")
         media = "text/plain"
-        fmt = "txt"
+    else:
+        # export.pdf used to answer 200 with a text file under that name.
+        raise HTTPException(400, "Format: txt, md, srt, vtt, json or ts.")
 
     ext = "txt" if fmt == "ts" else fmt
     name = f"{slug}.{ext}"

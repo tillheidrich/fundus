@@ -48,8 +48,13 @@ Assistent die Texte selbst.
 ## Was es kann
 
 **Transkripte.** Wo eine Plattform veröffentlichte Untertitel anbietet,
-verwendet Fundus die. Sonst transkribiert es lokal mit Whisper (faster-whisper
-auf Servern, MLX auf der Neural Engine von Macs mit Apple Silicon). Es gibt
+verwendet Fundus die (für YouTube-Untertitel braucht es nichts weiter). Wo es
+keine gibt, wie bei den meisten Reels und kurzen Videos, holt Fundus den Ton
+und transkribiert ihn lokal mit Whisper (faster-whisper auf Servern, MLX auf
+Macs mit Apple Silicon). Den Ton zu holen setzt den optionalen
+Medien-Extraktor voraus, bei YouTube außerdem den YouTube-Schalter (siehe
+[unten](#optional-extraktoren)). Eigene Audio- und Videodateien lassen sich
+immer hochladen und transkribieren. Es gibt
 klickbare Zeitmarken, eine Wortzahl und eine Suche im Text. Exportieren kannst
 du als `txt`, `md`, `srt`, `vtt` oder `json`.
 
@@ -59,9 +64,10 @@ Eintrag im Feed heraus, also Sendung, Titel, Datum, Dauer, Shownotes und, falls
 die Sendung eins veröffentlicht, das offizielle Transkript. Zugeordnet wird
 zuerst über die GUID, dann über Dauer und Datum und nur als letzter Ausweg über
 den Titel, dann aber als unsicher markiert. Viele Sendungen veröffentlichen
-gar kein Transkript. Für die schreibt Fundus ein fertiges
-Whisper-Script (macOS mit MLX oder Windows-PowerShell), das die Folgen auf
-deinem eigenen Rechner transkribiert. Eigennamen aus den Shownotes bekommt
+gar kein Transkript. Die Mac-App transkribiert diese Folgen selbst. Ein
+Server schreibt stattdessen ein fertiges Whisper-Script (macOS mit MLX oder
+Windows-PowerShell), das die Folgen auf deinem eigenen Rechner transkribiert,
+es sei denn, der Betreiber setzt `PODCAST_SERVER_WHISPER=1`. Eigennamen aus den Shownotes bekommt
 Whisper mit, damit es sie richtig schreibt.
 
 **Auftragszettel.** Wenn es um viele Folgen auf einmal geht, kann dir ein
@@ -75,8 +81,8 @@ alles Übrige. Die Anleitung, die ein Assistent dafür braucht, liegt unter
 **Suche über Folgen hinweg.** In einem Podcast-Paket durchsuchst du alle
 Transkripte auf einmal und bekommst Folge, Zeitmarke und Textstelle zurück,
 also die Antwort auf „in welcher Folge ging es um X, und ab wann". Das geht
-über MCP und über die API. Gesucht wird immer im jeweiligen Paket, einen Index
-oder eine Historie früherer Läufe führt Fundus nicht.
+über MCP und über die API. Gesucht wird immer im jeweiligen Paket, einen
+Index über mehrere Pakete gibt es nicht.
 
 **MCP-Server.** Unter `/mcp` gibt es einen Endpunkt, für den jeder Nutzer einen
 persönlichen Bearer-Token hat. Darüber holt Claude oder ein anderer Assistent
@@ -143,10 +149,11 @@ Dann `http://localhost:8000` öffnen und das erste Konto anlegen. Es wird
 automatisch Administrator, danach ist die Registrierung geschlossen, außer du
 setzt `SIGNUP_CODE` (Einladungscode) oder `OPEN_SIGNUP=1`.
 
-Ohne weitere Einstellungen kann der Container Podcasts, offizielle
-Transkripte, Whisper und veröffentlichte Untertitel, für die kein Extraktor
-nötig ist. Die Whisper-Modelle werden beim ersten Einsatz geladen und in einem
-eigenen Volume aufbewahrt.
+Ohne weitere Einstellungen kann der Container YouTube-Untertitel, Podcasts
+mit ihren offiziellen Transkripten und Whisper für hochgeladene Dateien. Der
+Serverprozess läuft als Benutzer ohne Sonderrechte, und der Port ist an
+`127.0.0.1` gebunden. Die Whisper-Modelle werden beim ersten Einsatz von
+Hugging Face geladen und in einem eigenen Volume aufbewahrt.
 
 #### Optional: Extraktoren
 
@@ -159,8 +166,11 @@ EXTRACTOR_AUTO_INSTALL=1
 ```
 
 und yt-dlp und gallery-dl werden beim ersten Start installiert, oder du hängst
-ein eigenes Binary unter `/usr/local/bin/yt-dlp` ein. Mediendateien von YouTube
-bleiben trotzdem aus, bis du zusätzlich `ENABLE_YOUTUBE_VIDEO=1` setzt.
+ein eigenes Binary unter `/usr/local/bin/yt-dlp` ein. Damit liest Fundus auch
+Untertitel anderer Plattformen, transkribiert Reels und kurze Videos ohne
+Untertitel und speichert Mediendateien. Alles, was Medien von YouTube holt,
+auch den Ton fürs Transkribieren, bleibt aus, bis du zusätzlich
+`ENABLE_YOUTUBE_VIDEO=1` setzt.
 
 ### macOS
 
@@ -303,7 +313,7 @@ in der Hand hast.
 
 ## MCP
 
-Fundus hat einen MCP-Server unter `/mcp` (Streamable HTTP) mit einem persönlichen Token pro Konto. Er funktioniert mit Claude, Codex und mit offenen Modellen über lokale Programme wie LM Studio, Open WebUI, Goose, Cline oder AnythingLLM. Die System-Seite der App (auf dem Server die Konto-Seite) zeigt für jeden dieser Assistenten den fertigen Eintrag mit deinem Token. Claude Desktop, Jan, Msty und oterm starten nur lokale Server; dort hilft die Brücke `mcp-remote` (braucht Node). Wie die Einträge genau aussehen, steht in der [englischen README](README.md#mcp). Die Clouds von Claude und ChatGPT erreichen keine lokale Adresse und bieten nur OAuth an, damit klappt es noch nicht.
+Fundus hat einen MCP-Server unter `/mcp` (Streamable HTTP) mit einem persönlichen Token pro Konto. Getestet mit Claude Code, Codex und der Brücke `mcp-remote`; jedes Programm, das Streamable HTTP spricht, sollte funktionieren, auch lokale Programme für offene Modelle wie LM Studio, Open WebUI, Goose, Cline oder AnythingLLM. Die System-Seite der App (auf dem Server die Konto-Seite) zeigt für jeden dieser Assistenten einen Eintrag mit deinem Token. Codex fragt vor jedem Werkzeugaufruf nach; im nicht-interaktiven `codex exec` wird der Aufruf sonst abgelehnt. Die Mac-App nutzt `http://127.0.0.1:8765/mcp`, und wenn ein anderes Programm den Port belegt, einen freien, den die System-Seite anzeigt. Claude Desktop, Jan, Msty und oterm starten nur lokale Server; dort hilft die Brücke `mcp-remote` (braucht Node). Wie die Einträge genau aussehen, steht in der [englischen README](README.md#mcp). Die Clouds von Claude und ChatGPT erreichen keine lokale Adresse und bieten nur OAuth an, damit klappt es noch nicht.
 
 | Werkzeug | |
 |---|---|

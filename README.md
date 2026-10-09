@@ -45,20 +45,25 @@ search the text itself.
 
 ## What it does
 
-**Transcripts.** Published captions if a platform provides them, otherwise
-local transcription with Whisper (faster-whisper on servers, MLX on the Neural
-Engine of Apple Silicon Macs). Timestamps are clickable, you see the word
-count, and you can search within the text. Export as `txt`, `md`, `srt`, `vtt`
-or `json`.
+**Transcripts.** Published captions if a platform provides them (YouTube
+captions need nothing extra). Where there are none, as with most reels and
+short videos, Fundus fetches the audio and transcribes it locally with
+Whisper (faster-whisper on servers, MLX on Apple Silicon Macs). Fetching that
+audio needs the optional media extractor, and for YouTube also the YouTube
+switch (see [below](#optional-media-extractors)). Your own audio and video
+files can always be uploaded and transcribed. Timestamps are clickable, you
+see the word count, and you can search within the text. Export as `txt`, `md`,
+`srt`, `vtt` or `json`.
 
 **Podcasts.** Paste Spotify, Apple Podcasts, RSS or show website links, and
 Fundus finds the matching feed entry for each one: show, title, date,
 duration, shownotes and the official transcript, if the show publishes one.
 It matches by GUID first, then by duration and date. Matching by title only is
 the last resort, and those episodes are marked as uncertain. Many shows
-publish no transcript at all. For those, Fundus writes a ready-to-run
-Whisper script (macOS with MLX, or Windows PowerShell) that transcribes the
-episodes on your own computer. Names from the shownotes are passed to Whisper
+publish no transcript at all. The macOS app transcribes those episodes
+itself. A server writes a ready-to-run Whisper script instead (macOS with MLX,
+or Windows PowerShell) that transcribes them on your own computer, unless the
+operator sets `PODCAST_SERVER_WHISPER=1`. Names from the shownotes are passed to Whisper
 so it spells them correctly.
 
 **Order sheets (Auftragszettel).** For many episodes at once, an assistant can
@@ -71,8 +76,8 @@ served at `/api/podcast/auftragszettel.md`.
 **Search across episodes.** Inside a podcast package you can search all
 transcripts at once. You get back the episode, the timestamp and the passage,
 so you know which episode talked about X and from when. This works through
-MCP and the API. Search only covers the package you are working with; Fundus
-keeps no index or history of earlier runs.
+MCP and the API. Search only covers the package you are working with; there
+is no index across packages.
 
 **MCP server.** An `/mcp` endpoint with a personal bearer token for each user,
 so Claude or another assistant can fetch transcripts, resolve podcasts, build
@@ -134,9 +139,11 @@ Open `http://localhost:8000` and create the first account. It becomes the
 administrator, and sign-up closes after that unless you set `SIGNUP_CODE`
 (invite code) or `OPEN_SIGNUP=1`.
 
-Out of the box the container handles podcasts, official transcripts, Whisper
-and published captions that don't need an extractor. Whisper models are
-downloaded the first time you use them and kept in their own volume.
+Out of the box the container handles YouTube captions, podcasts with their
+official transcripts, and Whisper for files you upload. The server process
+runs as an unprivileged user and the port is bound to `127.0.0.1`. Whisper
+models are downloaded from Hugging Face the first time you use them and kept
+in their own volume.
 
 #### Optional: media extractors
 
@@ -148,8 +155,10 @@ EXTRACTOR_AUTO_INSTALL=1
 ```
 
 in `.env`, which installs yt-dlp and gallery-dl on first start, or mount your
-own binary at `/usr/local/bin/yt-dlp`. Media retrieval from YouTube stays off
-until you also set `ENABLE_YOUTUBE_VIDEO=1`.
+own binary at `/usr/local/bin/yt-dlp`. With it, Fundus can read subtitles from
+other platforms, transcribe reels and short videos that have none, and save
+media files. Media retrieval from YouTube, including audio for transcription,
+stays off until you also set `ENABLE_YOUTUBE_VIDEO=1`.
 
 ### macOS
 
@@ -292,8 +301,9 @@ Fundus runs a Model Context Protocol server at `/mcp` (streamable HTTP). Each
 user has a personal bearer token, which the account page shows together with
 the endpoint URL.
 
-It works with Claude, Codex and with open models through local clients. The
-app's System page (account page on a server) shows the exact snippet for each
+Tested with Claude Code, Codex and the `mcp-remote` bridge; any client that
+speaks streamable HTTP should work, including local clients for open models.
+The app's System page (account page on a server) shows a snippet for each
 client with your token filled in. In short:
 
 **Claude Code**
@@ -310,6 +320,10 @@ claude mcp add --transport http fundus https://fundus.example.com/mcp \
 url = "https://fundus.example.com/mcp"
 bearer_token_env_var = "FUNDUS_TOKEN"
 ```
+
+Codex asks before each MCP tool call. Interactively that is one click; in
+non-interactive `codex exec` the call is refused unless approvals are
+switched off for that run.
 
 **LM Studio, Cline, AnythingLLM, Cursor** and other clients that read an
 `mcpServers` block with a URL (Cline also wants `"type": "streamableHttp"`,
@@ -346,7 +360,8 @@ AnythingLLM `"type": "streamable"`):
 }
 ```
 
-The macOS app serves MCP at `http://127.0.0.1:8765/mcp`. Claude's and
+The macOS app serves MCP at `http://127.0.0.1:8765/mcp` (if another program
+holds that port, it picks a free one and shows it on the System page). Claude's and
 ChatGPT's own cloud connectors can't reach a local address and only offer
 OAuth, so they don't work with Fundus yet; the clients above do. Tool names
 and descriptions are in English, which helps smaller open models pick the

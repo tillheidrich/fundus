@@ -16,7 +16,7 @@ import main
 import podcast
 
 
-SEGS = [{"start": 0.0, "dur": 2.0, "text": "Hallo von Gregor Schmalzried."},
+SEGS = [{"start": 0.0, "dur": 2.0, "text": "Hallo von Ada Lovelace."},
         {"start": 2.0, "dur": 2.0, "text": "Wir reden über Kubernetes."}]
 
 
@@ -67,7 +67,7 @@ def test_happy_path_produces_an_exportable_transcript(as_user, alice, whisper, t
 
     srt = c.get(f"/api/transcript/{job_id}/export.srt")
     assert srt.status_code == 200
-    assert "Gregor Schmalzried" in srt.text and "-->" in srt.text
+    assert "Ada Lovelace" in srt.text and "-->" in srt.text
 
     # Whisper saw the file, and nothing is left behind afterwards.
     assert whisper and whisper[0]["exists"] is True
@@ -76,8 +76,8 @@ def test_happy_path_produces_an_exportable_transcript(as_user, alice, whisper, t
 
 def test_glossary_reaches_whisper_capped(as_user, alice, whisper):
     c = as_user(alice)
-    _upload(c, prompt="Gregor Schmalzried\nKubernetes")
-    assert whisper[-1]["prompt"] == "Gregor Schmalzried, Kubernetes"
+    _upload(c, prompt="Ada Lovelace\nKubernetes")
+    assert whisper[-1]["prompt"] == "Ada Lovelace, Kubernetes"
 
     _upload(c, prompt="x" * 500)
     assert len(whisper[-1]["prompt"]) == 200
@@ -113,12 +113,14 @@ def test_url_whisper_fallback_uses_the_prompt(monkeypatch, tmp_path):
         return list(SEGS), "de"
 
     monkeypatch.setattr(main, "WHISPER_ENABLED", True)
+    monkeypatch.setattr(main, "_extractor_installed", lambda: True)
+    monkeypatch.setattr(main, "youtube_video_enabled", lambda: True)
     monkeypatch.setattr(main, "_download_audio", fake_audio)
     monkeypatch.setattr(main, "_media_duration", fake_duration)
     monkeypatch.setattr(main, "_whisper_segments", fake_segments)
     segs, _ = asyncio.run(main._transcript_via_whisper(
-        "j", "https://youtu.be/x", "de", prompt="Gregor Schmalzried"))
-    assert segs and got["prompt"] == "Gregor Schmalzried"
+        "j", "https://youtu.be/x", "de", prompt="Ada Lovelace"))
+    assert segs and got["prompt"] == "Ada Lovelace"
 
 
 def test_wrong_extension_is_refused(as_user, alice, whisper, tmp_path):

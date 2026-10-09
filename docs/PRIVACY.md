@@ -30,12 +30,12 @@ Known limitations, stated plainly:
 
 | Destination | When | Off switch |
 |---|---|---|
-| pypi.org | version check for components, once per `CHECK_INTERVAL_H` (default 24 h) | `CHECK_INTERVAL_H=0` |
+| pypi.org | version check for the installed components, at start and then once per `CHECK_INTERVAL_H` (default 24 h); sends only package names | `CHECK_INTERVAL_H=0` |
 | pypi.org | installing updates — only when an admin presses the button, or `UPDATE_INTERVAL_H>0` | default off |
 | the platform a user pasted a link for (YouTube, Instagram, TikTok, Threads, Spotify, Apple Podcasts, podcast feed hosts) | when that user asks for it | — |
 | itunes.apple.com | podcast search and lookup | — |
 | huggingface.co | downloading a Whisper model on first use | `WHISPER_ENABLED=0` |
-| api.github.com (macOS app) | update check for the app itself: asks for the newest release tag, sends no user data, installs nothing (no release carries a download) | — |
+| api.github.com (macOS app) | update check for the app itself, at most once a day after launch: asks for the newest release tag, sends no user data, installs nothing | — |
 | pypi.org (macOS app) | installing yt-dlp and its JavaScript runtime, only after the user ticks the consent box under System → Media | nothing is installed without consent |
 
 The macOS app installs no media extractor during setup. Installing one is a
@@ -75,12 +75,12 @@ Bekannte Grenzen, offen gesagt:
 
 | Ziel | Wann | Abschalten |
 |---|---|---|
-| pypi.org | Versionsprüfung der Komponenten, alle `CHECK_INTERVAL_H` (Standard 24 h) | `CHECK_INTERVAL_H=0` |
+| pypi.org | Versionsprüfung der installierten Komponenten, beim Start und dann alle `CHECK_INTERVAL_H` (Standard 24 h); übermittelt nur Paketnamen | `CHECK_INTERVAL_H=0` |
 | pypi.org | Updates installieren — nur per Knopf oder bei `UPDATE_INTERVAL_H>0` | Standard aus |
 | die Plattform des eingefügten Links (YouTube, Instagram, TikTok, Threads, Spotify, Apple Podcasts, Feed-Hoster) | wenn jemand es anfordert | — |
 | itunes.apple.com | Podcast-Suche und -Auflösung | — |
 | huggingface.co | Whisper-Modell beim ersten Einsatz laden | `WHISPER_ENABLED=0` |
-| api.github.com (Mac-App) | Update-Prüfung der App selbst: fragt das neueste Release-Tag ab, sendet keine Nutzerdaten, installiert nichts (kein Release enthält einen Download) | — |
+| api.github.com (Mac-App) | Update-Prüfung der App selbst, höchstens einmal am Tag nach dem Start: fragt das neueste Release-Tag ab, sendet keine Nutzerdaten, installiert nichts | — |
 | pypi.org (Mac-App) | yt-dlp und seine JavaScript-Laufzeit installieren, nur nachdem die Person unter System → Medien die Einwilligung angekreuzt hat | ohne Einwilligung wird nichts installiert |
 
 Bei der Einrichtung installiert die Mac-App keinen Medien-Extraktor. Das ist
