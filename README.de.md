@@ -164,20 +164,42 @@ bleiben trotzdem aus, bis du zusätzlich `ENABLE_YOUTUBE_VIDEO=1` setzt.
 
 ### macOS
 
-Die Mac-App gibt es nicht zum Download, ein öffentliches `.dmg` existiert
-nicht. Fertig gebaute Kopien gebe ich nur direkt an Familie, Freunde und
-Forschungspartner weiter. Bauen kann sie aber jeder selbst aus dem Quellcode:
+Ein `.dmg` zum Herunterladen gibt es nicht. Der Installer unten holt den
+Quellcode des neuesten Release, baut die App auf deinem Mac und legt sie in
+den Programme-Ordner. Einfach ins Terminal kopieren:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tillheidrich/fundus/main/macos/install.sh | bash
+```
+
+Was er der Reihe nach macht: Er prüft macOS 13+ und Apples Command Line Tools
+(fehlen sie, bietet macOS per Dialog die Installation an, etwa 1–2 GB; danach
+die Zeile noch mal ausführen), holt das neueste Release-Tag, übersetzt die
+App, signiert sie für diesen Mac und installiert sie nach `/Applications`
+(oder `~/Applications`, wenn dort kein Schreibrecht besteht). Weil die App
+hier gebaut und nicht heruntergeladen wurde, zeigt Gatekeeper keine Warnung.
+Der erste Build dauert ein paar Minuten.
+
+Lieber erst lesen, dann ausführen? Vorher herunterladen:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/tillheidrich/fundus/main/macos/install.sh
+less install.sh && bash install.sh
+```
+
+Optionen: `--ref v1.1.0` baut eine bestimmte Version, `--user` installiert
+nach `~/Applications`, `--uninstall` entfernt App und Build-Quellen (deine
+Daten bleiben). Mit der Pipe so übergeben: `… | bash -s -- --user`.
+
+Oder von Hand:
 
 ```bash
 git clone https://github.com/tillheidrich/fundus.git
-cd fundus/macos && ./build-app.sh
+cd fundus/macos && ./build-app.sh --install
 ```
 
-Dafür brauchst du die Xcode Command Line Tools (`xcode-select --install`), das
-volle Xcode ist nicht nötig. Signieren ist optional: Ohne Signaturidentität
-signiert das Skript die App ad hoc, und das reicht, um sie auf dem Mac zu
-nutzen, auf dem sie gebaut wurde. Mit `./build-app.sh --install` landet sie
-außerdem im Programme-Ordner.
+Signieren ist optional: Ohne Signaturidentität signiert das Skript die App ad
+hoc, und das reicht für den Mac, auf dem sie gebaut wurde.
 
 Die App läuft komplett auf deinem Mac. Der Server lauscht nur auf der
 Loopback-Schnittstelle, es gibt keinen Login und keine Telemetrie. Ausgehende
@@ -215,16 +237,12 @@ docker compose pull && docker compose up -d
 git pull && docker compose up -d --build
 ```
 
-**Mac-App aus dem Quellcode.** Neuen Stand holen und neu bauen:
-
-```bash
-git pull && cd macos && ./build-app.sh --install
-```
-
-Die eingebaute Update-Prüfung der App schaut zwar weiter nach neuen
-Versionen, installieren kann sie aber nur Releases mit `.dmg`, und davon wird
-keins veröffentlicht. Sie verweist dich deshalb nur auf die Release-Seite.
-Aktualisieren heißt also: neu bauen.
+**Mac-App.** Den Installationsbefehl einfach noch mal ausführen. Er baut das
+neueste Release und ersetzt die App; Einstellungen und Dateien unter
+`~/Library/Application Support/Fundus` bleiben unberührt. Die App schaut
+einmal am Tag auf GitHub nach einem neueren Release-Tag (ohne Nutzerdaten zu
+senden) und bietet dann an, den Befehl zu kopieren und das Terminal zu
+öffnen. Wer von Hand gebaut hat: `git pull && cd macos && ./build-app.sh --install`.
 
 **yt-dlp und die übrigen Komponenten.** Die aktualisierst du über den
 Update-Knopf im Bereich System (auf einem Server auf der Kontoseite eines

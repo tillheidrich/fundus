@@ -153,19 +153,42 @@ until you also set `ENABLE_YOUTUBE_VIDEO=1`.
 
 ### macOS
 
-The Mac app is not distributed as a download. There is no public `.dmg`; I
-only hand built copies directly to family, friends and research partners.
-Anyone can build it from source:
+There is no `.dmg` to download. The installer below fetches the source of the
+newest release, builds the app on your Mac and puts it in Applications. Paste
+it into Terminal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tillheidrich/fundus/main/macos/install.sh | bash
+```
+
+What it does, in order: checks for macOS 13+ and Apple's Command Line Tools
+(if they are missing, macOS shows a dialog to install them, about 1–2 GB;
+run the line again afterwards), clones the newest release tag, compiles the
+app, signs it for this Mac and installs it to `/Applications` (or
+`~/Applications` if that is not writable). Since the app was built here and
+not downloaded, Gatekeeper shows no warning. Building takes a few minutes the
+first time.
+
+Prefer to read a script before running it? Download it first:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/tillheidrich/fundus/main/macos/install.sh
+less install.sh && bash install.sh
+```
+
+Options: `--ref v1.1.0` builds a specific version, `--user` installs to
+`~/Applications`, `--uninstall` removes the app and the build sources (your
+data stays). With the pipe, pass them as `… | bash -s -- --user`.
+
+By hand, if you'd rather:
 
 ```bash
 git clone https://github.com/tillheidrich/fundus.git
-cd fundus/macos && ./build-app.sh
+cd fundus/macos && ./build-app.sh --install
 ```
 
-You need the Xcode Command Line Tools (`xcode-select --install`), not the full
-Xcode. Signing is optional: without a signing identity the script signs the
-app ad hoc, which is all you need to run it on the Mac that built it.
-`./build-app.sh --install` also copies the result to Applications.
+Signing is optional: without a signing identity the script signs the app ad
+hoc, which is all it needs to run on the Mac that built it.
 
 The app runs entirely on your Mac. The server only listens on the loopback
 interface, there is no login and no telemetry. The only outbound connections
@@ -201,15 +224,12 @@ docker compose pull && docker compose up -d
 git pull && docker compose up -d --build
 ```
 
-**macOS app, built from source.** Pull and rebuild:
-
-```bash
-git pull && cd macos && ./build-app.sh --install
-```
-
-The app's built-in update check still looks for a newer version tag, but it
-can only install releases that carry a `.dmg`, and none are published. So it
-just points you to the release page; updating means rebuilding.
+**macOS app.** Run the install command again. It builds the newest release
+and replaces the app; settings and files in
+`~/Library/Application Support/Fundus` are untouched. The app checks once a
+day for a newer release tag on GitHub (no user data is sent) and, if there is
+one, offers to copy that command and open Terminal for you. If you built by
+hand: `git pull && cd macos && ./build-app.sh --install`.
 
 **yt-dlp and the other components.** Use the update button in the System
 section (on a server, that is on an administrator's account page). Automatic

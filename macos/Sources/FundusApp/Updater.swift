@@ -103,6 +103,11 @@ enum Updater {
 
     // MARK: - Presenting
 
+    /// The one-line installer from the README. Rerunning it builds the newest
+    /// release tag and swaps the app; data in Application Support stays.
+    static let installCommand =
+        "curl -fsSL https://raw.githubusercontent.com/tillheidrich/fundus/main/macos/install.sh | bash"
+
     private static let skippedKey = "FundusSkippedVersion"
     private static let lastCheckKey = "FundusLastUpdateCheck"
 
@@ -149,7 +154,18 @@ enum Updater {
         }
         a.informativeText = text
         let canInstall = rel.dmg != nil && Installer.canReplaceSelf
+        // Public releases carry no disk image: the app is built from source.
+        // Then the update is the install command run again, so offer exactly
+        // that instead of a release page with nothing to download.
+        let fromSource = rel.dmg == nil
+        if fromSource {
+            text += "\n\n" + L("Zum Aktualisieren den Installationsbefehl im Terminal erneut ausführen:",
+                               "To update, run the install command in Terminal again:")
+                + "\n" + installCommand
+        }
+        a.informativeText = text
         a.addButton(withTitle: canInstall ? L("Installieren und neu starten", "Install and Relaunch")
+                             : fromSource ? L("Befehl kopieren und Terminal öffnen", "Copy Command and Open Terminal")
                                           : L("Herunterladen", "Download"))
         a.addButton(withTitle: L("Später", "Later"))
         if !manual { a.addButton(withTitle: L("Diese Version überspringen", "Skip This Version")) }
@@ -158,6 +174,12 @@ enum Updater {
         case .alertFirstButtonReturn:
             if canInstall, let dmg = rel.dmg {
                 Installer.install(from: dmg, version: rel.version, fallback: rel.url)
+            } else if fromSource {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(installCommand, forType: .string)
+                if let term = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") {
+                    NSWorkspace.shared.openApplication(at: term, configuration: .init())
+                }
             } else {
                 NSWorkspace.shared.open(rel.url)
             }

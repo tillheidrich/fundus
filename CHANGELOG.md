@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **One-line installer for macOS.** `macos/install.sh` builds the newest
+  release from source and installs it to Applications; run it again to
+  update, `--uninstall` to remove. No disk image involved.
+- **Update prompt without a disk image.** When a newer release exists, the
+  app offers to copy the install command and open Terminal instead of
+  pointing to a release page with nothing to download.
+- The project website is gone; this repository is the home page.
+
 ## 1.1.0
 
 **Media download is opt-in on the Mac.** The app no longer installs yt-dlp,
